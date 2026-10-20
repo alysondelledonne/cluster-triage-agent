@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness. The Kubernetes tools, RBAC, diagnosis schema and scenarios below are the target design for Milestones 1–3.
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category` and `ResourceRef` in `models.py`. The Kubernetes tools, RBAC and the `Diagnosis` model below are the target design for Milestones 1–3.
 
 ## Overview
 
@@ -70,20 +70,38 @@ A Pydantic model, enforced through the `submit_diagnosis` tool schema:
 
 ## Failure scenarios
 
-Each scenario is a folder under `scenarios/` with a `manifest.yaml` that breaks something and an `expected.yaml` holding the right category and resource. Each runs in its own namespace.
+Each scenario is a folder under `scenarios/NN-name/`. `manifest.yaml` creates a namespace `triage-NN-name` (labelled `triage.scenario`) and breaks exactly one thing in it. `expected.yaml` holds the right answer and the signal that the failure has shown:
 
-| # | Scenario | How it's seeded | Expected category |
-| --- | --- | --- | --- |
-| 1 | Crashing app | Container command exits 1 | CrashLoop |
-| 2 | Bad image | Image tag that doesn't exist | ImagePull |
-| 3 | Out of memory | Memory limit far below what the app allocates | OOMKilled |
-| 4 | Missing config | Pod references a ConfigMap key that doesn't exist | ConfigError |
-| 5 | Failing probe | Readiness probe on the wrong port | ProbeFailure |
-| 6 | Permission denied | App's ServiceAccount can't read a ConfigMap it needs; logs show 403 | RBACDenied |
-| 7 (M4) | Blocked traffic | NetworkPolicy denies traffic from the frontend | NetworkPolicy |
-| 8 (M4) | Red herring | Two problems at once, or a misleading log line | the real one |
+```yaml
+namespace: triage-04-missing-config
+category: ConfigError
+affected_resource: {kind: Deployment, name: billing}
+also_accept:                      # other answers graded as right
+  - {kind: ConfigMap, name: app-config}
+description: Pod references a ConfigMap key that doesn't exist
+seed:
+  wait_for:                       # container_waiting | container_terminated | event | log_contains
+    type: container_waiting
+    reasons: [CreateContainerConfigError]
+  timeout_s: 180                  # optional
+```
 
-Small public images only (busybox, nginx, a tiny Python app).
+| # | Folder | How it's seeded | Expected answer | Seeded when |
+| --- | --- | --- | --- | --- |
+| 1 | `01-crashloop` | busybox command logs an error and exits 1 | CrashLoop, Deployment/api | container waiting: CrashLoopBackOff |
+| 2 | `02-imagepull` | `nginx:1.0.0-does-not-exist` | ImagePull, Deployment/web | waiting: ErrImagePull or ImagePullBackOff |
+| 3 | `03-oomkilled` | `tail /dev/zero` under a 16Mi limit | OOMKilled, Deployment/worker | container terminated: OOMKilled |
+| 4 | `04-missing-config` | env var from a ConfigMap key that doesn't exist | ConfigError, Deployment/billing (or ConfigMap/app-config) | waiting: CreateContainerConfigError |
+| 5 | `05-failing-probe` | nginx on 80, readiness probe on 8080 | ProbeFailure, Deployment/frontend | event: Unhealthy |
+| 6 | `06-rbac-denied` | curl reads a ConfigMap with a ServiceAccount that has no Role; keeps running | RBACDenied, ServiceAccount/reporter (or Deployment/reporter) | logs contain "is forbidden" |
+| 7 (M4) | | NetworkPolicy denies traffic from the frontend | NetworkPolicy | |
+| 8 (M4) | | Two problems at once, or a misleading log line | the real one | |
+
+Pinned public images only (busybox, nginx, curlimages/curl), each container with a memory limit, no Secrets.
+
+### Seeding
+
+`triage-seed` (`src/triage/scenarios.py`) is test-harness code, separate from the agent. It runs `kubectl` with your own context, so it can create and delete, and it refuses any context that isn't `kind-*`. `apply` runs `kubectl apply -f`, then polls `get pods`, `get events` or `logs` until the `wait_for` signal shows or the timeout passes. `delete` removes the scenario's namespace. `check` does both for each scenario and reports how long each failure took to show.
 
 ## Evals
 
@@ -109,12 +127,13 @@ cluster-triage-agent/
   src/triage/
     mcp_server/        read-only tools + output trimming
     agent/             loop, system prompt, tool-call cap
-    models.py          Diagnosis schema (Pydantic)            (M2)
+    models.py          Category, ResourceRef; Diagnosis schema in M2
+    scenarios.py       triage-seed: seed, wait for, delete scenarios
     providers/         adapter: Claude + one comparison model
     evals/             eval runner
     cli.py             triage --namespace <ns>
   deploy/rbac/         ServiceAccount, ClusterRole, binding   (M1)
-  scenarios/NN-name/   manifest.yaml + expected.yaml          (M1)
+  scenarios/NN-name/   manifest.yaml + expected.yaml
   evals/               cases, baseline, results
   tests/               offline unit tests and fixtures
   .github/workflows/   lint, types, tests and eval gate on every push and PR

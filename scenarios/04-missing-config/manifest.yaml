@@ -1,0 +1,46 @@
+# The Deployment reads LOG_LEVEL from a ConfigMap key that doesn't exist, so the
+# kubelet can't build the container's environment (CreateContainerConfigError).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: triage-04-missing-config
+  labels:
+    triage.scenario: 04-missing-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: triage-04-missing-config
+data:
+  LOG_FORMAT: json
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing
+  namespace: triage-04-missing-config
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: billing
+  template:
+    metadata:
+      labels:
+        app: billing
+    spec:
+      containers:
+        - name: billing
+          image: busybox:1.36.1
+          command: ["sh", "-c", "echo billing up; sleep 3600"]
+          env:
+            - name: LOG_FORMAT
+              valueFrom:
+                configMapKeyRef: {name: app-config, key: LOG_FORMAT}
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef: {name: app-config, key: LOG_LEVEL}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 32Mi}

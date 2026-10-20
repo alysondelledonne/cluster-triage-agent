@@ -1,0 +1,10 @@
+namespace: triage-04-missing-config
+category: ConfigError
+affected_resource: {kind: Deployment, name: billing}
+also_accept:
+  - {kind: ConfigMap, name: app-config}
+description: Pod references a ConfigMap key that doesn't exist
+seed:
+  wait_for:
+    type: container_waiting
+    reasons: [CreateContainerConfigError]

@@ -1,0 +1,31 @@
+# The image tag doesn't exist, so the kubelet can never pull it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: triage-02-imagepull
+  labels:
+    triage.scenario: 02-imagepull
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: triage-02-imagepull
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.0.0-does-not-exist
+          ports:
+            - containerPort: 80
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}

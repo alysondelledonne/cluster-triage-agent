@@ -1,0 +1,11 @@
+namespace: triage-06-rbac-denied
+category: RBACDenied
+affected_resource: {kind: ServiceAccount, name: reporter}
+also_accept:
+  - {kind: Deployment, name: reporter}
+description: App's ServiceAccount can't read a ConfigMap it needs; logs show 403
+seed:
+  wait_for:
+    type: log_contains
+    resource: deployment/reporter
+    text: is forbidden

@@ -1,0 +1,58 @@
+# The reporter reads its settings from a ConfigMap through the Kubernetes API,
+# but its ServiceAccount has no Role allowing that, so every call gets a 403.
+# The pod keeps running and logs the error instead of crashing.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: triage-06-rbac-denied
+  labels:
+    triage.scenario: 06-rbac-denied
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: reporter
+  namespace: triage-06-rbac-denied
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: report-settings
+  namespace: triage-06-rbac-denied
+data:
+  schedule: hourly
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporter
+  namespace: triage-06-rbac-denied
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporter
+  template:
+    metadata:
+      labels:
+        app: reporter
+    spec:
+      serviceAccountName: reporter
+      containers:
+        - name: reporter
+          image: curlimages/curl:8.11.1
+          command: ["sh", "-c"]
+          args:
+            - |
+              SA=/var/run/secrets/kubernetes.io/serviceaccount
+              NS=$(cat $SA/namespace)
+              while true; do
+                echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) loading settings from configmap report-settings"
+                curl -sS --cacert $SA/ca.crt -H "Authorization: Bearer $(cat $SA/token)" \
+                  https://kubernetes.default.svc/api/v1/namespaces/$NS/configmaps/report-settings
+                echo
+                sleep 15
+              done
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 32Mi}

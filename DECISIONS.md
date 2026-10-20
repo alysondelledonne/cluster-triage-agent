@@ -4,6 +4,10 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 016 | 2026-10-20 | Scenario format: one namespace per scenario, `expected.yaml` with a wait condition and `also_accept` | Accepted |
+| 015 | 2026-10-20 | Seeder uses `kubectl` and refuses non-kind contexts | Accepted |
+| 014 | 2026-10-20 | Scenarios use pinned public images with memory limits and never create Secrets | Accepted |
+| 013 | 2026-10-20 | Add PyYAML (runtime) and types-PyYAML (dev) | Accepted |
 | 012 | 2026-10-20 | Defer the comparison-model API key to Milestone 3 | Accepted |
 | 011 | 2026-10-20 | Use Claude Haiku as the default model while building | Accepted |
 | 010 | 2026-10-20 | Keep the template's example tools and evals until M1/M2 replace them | Accepted |
@@ -23,6 +27,22 @@ A running log of design and project decisions: what was decided, why, and what i
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 016 — Scenario format: one namespace per scenario, `expected.yaml` with a wait condition and `also_accept`
+**Why:** A namespace per scenario keeps them independent and makes cleanup one `kubectl delete namespace`. Each `expected.yaml` holds the right answer plus how to tell the failure has actually shown (a container waiting or terminated reason, an event, or text in the logs), so seeding waits on the real signal instead of a fixed sleep. Some failures have more than one fair answer (the ServiceAccount or the Deployment using it), so `also_accept` lists the alternatives for grading in M3.
+**Consequence:** Scenario 6 keeps running and logs its 403 instead of exiting, so it reads as RBACDenied rather than CrashLoop. `Category` and `ResourceRef` live in `src/triage/models.py` now, ahead of the `Diagnosis` model in M2, so scenarios and diagnoses share one category list.
+
+### 015 — Seeder uses `kubectl` and refuses non-kind contexts
+**Why:** Seeding creates and deletes resources, which the agent must never do, so it stays separate from the agent's read-only path and runs with your own kube context. `kubectl apply -f` handles multi-document manifests with no extra code, and the Kubernetes Python client is a separate decision for the M1 tools. Every call passes `--context` explicitly (default `kind-triage`) so a changed default context can't send scenarios to another cluster.
+**Consequence:** `triage-seed` exits with an error for any context not starting with `kind-` unless `--allow-any-context` is passed. Unit tests use a fake `Kubectl`; nothing in CI touches a cluster.
+
+### 014 — Scenarios use pinned public images with memory limits and never create Secrets
+**Why:** Pinned tags make runs reproducible; memory limits keep a laptop kind cluster healthy (and scenario 3 needs one to fail); no Secrets keeps the "agent never sees Secrets" rule simple to test.
+**Consequence:** Images are limited to busybox, nginx and curlimages/curl, checked by `tests/test_scenarios.py` along with namespaces, limits, privileged mode and Secrets.
+
+### 013 — Add PyYAML (runtime) and types-PyYAML (dev)
+**Why:** Scenario manifests and `expected.yaml` are YAML. PyYAML was already in the lockfile through pre-commit at the same version; approved 2026-10-20.
+**Consequence:** Always `yaml.safe_load`, never `yaml.load`.
 
 ### 012 — Defer the comparison-model API key to Milestone 3
 **Why:** Nothing before the M3 evals calls a second model, and an unused key is one more thing to secure and pay for.

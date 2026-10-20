@@ -1,0 +1,48 @@
+# nginx listens on 80 but the readiness probe checks 8080, so the pod runs but
+# never becomes Ready and the Service has no endpoints.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: triage-05-failing-probe
+  labels:
+    triage.scenario: 05-failing-probe
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: triage-05-failing-probe
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: triage-05-failing-probe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: nginx:1.27.5-alpine
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet: {path: /, port: 8080}
+            periodSeconds: 5
+            failureThreshold: 1
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}

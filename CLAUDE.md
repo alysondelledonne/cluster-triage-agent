@@ -44,6 +44,8 @@ Design doc: see "cluster-triage-agent: Design & Milestones" (milestones M0–M4)
 - Offline eval gate (what CI runs): `uv run triage-eval --provider fake --gate`
 - Real evals (call model APIs, cost money; run only when asked): `uv run triage-eval --provider anthropic --repeats 3`
 - Local cluster: `kind create cluster --name triage` / `kind delete cluster --name triage`
+- Scenarios: `uv run triage-seed list | apply <n> | delete <n> | check` (writes to the cluster;
+  kind contexts only, default `kind-triage`)
 
 ## Layout
 Started from ai-project-template. The example MCP tools and eval cases are placeholders
@@ -56,6 +58,9 @@ Now:
 - `src/triage/mcp_server/` MCP server (example tools for now)
 - `src/triage/evals/` eval runner; data in `evals/` (cases, baseline, results)
 - `src/triage/cli.py` the `triage` command
+- `src/triage/models.py` shared types (`Category`, `ResourceRef`); `Diagnosis` joins in M2
+- `src/triage/scenarios.py` the `triage-seed` command: seed, wait for, and delete scenarios
+- `scenarios/NN-name/` `manifest.yaml` (breaks something) + `expected.yaml` (correct answer)
 - `config/pricing.json` per-model prices
 - `tests/` unit tests (offline)
 
@@ -63,7 +68,6 @@ Coming in M1–M3:
 - `src/triage/mcp_server/` read-only Kubernetes tools and output trimming
 - `src/triage/models.py` Diagnosis schema (Pydantic)
 - `deploy/rbac/` ServiceAccount, ClusterRole, binding
-- `scenarios/NN-name/` `manifest.yaml` (breaks something) + `expected.yaml` (correct answer)
 
 ## Conventions
 - Python 3.12, type hints everywhere, Pydantic for anything crossing a boundary.

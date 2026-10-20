@@ -1,0 +1,8 @@
+namespace: triage-03-oomkilled
+category: OOMKilled
+affected_resource: {kind: Deployment, name: worker}
+description: Memory limit far below what the app allocates
+seed:
+  wait_for:
+    type: container_terminated
+    reason: OOMKilled

@@ -1,0 +1,8 @@
+namespace: triage-02-imagepull
+category: ImagePull
+affected_resource: {kind: Deployment, name: web}
+description: Image tag that doesn't exist
+seed:
+  wait_for:
+    type: container_waiting
+    reasons: [ErrImagePull, ImagePullBackOff]

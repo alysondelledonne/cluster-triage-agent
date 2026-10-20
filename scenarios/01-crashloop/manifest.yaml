@@ -1,0 +1,36 @@
+# The app exits with an error on every start, so Kubernetes restarts it with
+# growing back-off delays until the container sits in CrashLoopBackOff.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: triage-01-crashloop
+  labels:
+    triage.scenario: 01-crashloop
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: triage-01-crashloop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: busybox:1.36.1
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "starting api"
+              echo "fatal: required setting LISTEN_PORT is missing" >&2
+              exit 1
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 32Mi}

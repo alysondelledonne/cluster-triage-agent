@@ -1,0 +1,8 @@
+namespace: triage-05-failing-probe
+category: ProbeFailure
+affected_resource: {kind: Deployment, name: frontend}
+description: Readiness probe on the wrong port
+seed:
+  wait_for:
+    type: event
+    reason: Unhealthy

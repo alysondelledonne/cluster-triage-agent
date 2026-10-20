@@ -1,0 +1,8 @@
+namespace: triage-01-crashloop
+category: CrashLoop
+affected_resource: {kind: Deployment, name: api}
+description: Container exits 1 on every start
+seed:
+  wait_for:
+    type: container_waiting
+    reasons: [CrashLoopBackOff]
