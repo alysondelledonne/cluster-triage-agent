@@ -1,0 +1,36 @@
+# Read-only access for the triage agent's MCP server (DECISIONS.md 002, 017).
+# tests/test_rbac.py checks every rule against an allowlist: no write verbs, no
+# Secrets, no wildcards. Adding a resource here means adding it there too.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: triage-agent-read
+rules:
+  # What's running and why it isn't: pod states, logs, events, and the objects
+  # a pod depends on. No Secrets, by design (CLAUDE.md hard rule).
+  - apiGroups: [""]
+    resources: [pods, pods/log, events, services, configmaps, serviceaccounts]
+    verbs: [get, list, watch]
+  - apiGroups: [events.k8s.io]
+    resources: [events]
+    verbs: [get, list, watch]
+  # Deployment -> ReplicaSet -> Pod, to tie a failing pod back to what owns it.
+  - apiGroups: [apps]
+    resources: [deployments, replicasets]
+    verbs: [get, list, watch]
+  # Which pods a Service routes to (scenario 5: a pod that never becomes Ready
+  # leaves the Service with no endpoints). EndpointSlices replace the deprecated
+  # core Endpoints API.
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  # Who may do what in the namespace, to explain an RBAC denial (scenario 6).
+  # Reading a Role grants nothing; binding or escalating would, and isn't here.
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, rolebindings]
+    verbs: [get, list, watch]
+  # can_i: ask the API server whether a ServiceAccount may do something.
+  # A SubjectAccessReview is a question, not a change; nothing is stored.
+  - apiGroups: [authorization.k8s.io]
+    resources: [subjectaccessreviews]
+    verbs: [create]

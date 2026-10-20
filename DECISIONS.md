@@ -4,6 +4,8 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 018 | 2026-10-20 | Bind the read-only role with a ClusterRoleBinding, not a RoleBinding per namespace | Accepted |
+| 017 | 2026-10-20 | RBAC test checks resources against an allowlist, not just verbs | Accepted |
 | 016 | 2026-10-20 | Scenario format: one namespace per scenario, `expected.yaml` with a wait condition and `also_accept` | Accepted |
 | 015 | 2026-10-20 | Seeder uses `kubectl` and refuses non-kind contexts | Accepted |
 | 014 | 2026-10-20 | Scenarios use pinned public images with memory limits and never create Secrets | Accepted |
@@ -27,6 +29,14 @@ A running log of design and project decisions: what was decided, why, and what i
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 018 — Bind the read-only role with a ClusterRoleBinding, not a RoleBinding per namespace
+**Why:** Every scenario runs in its own namespace (016), so per-namespace RoleBindings would mean seeding creates a binding each time and the agent can't run against a namespace nobody prepared. The tools are still limited to the one namespace the caller passes in (003), and the role is read-only with no Secrets (017).
+**Consequence:** The ServiceAccount `triage-system/triage-agent` can read the allowed resources in every namespace, including `kube-system`. Tightening to per-namespace RoleBindings stays an option for M4, when the threat-model scenarios land.
+
+### 017 — RBAC test checks resources against an allowlist, not just verbs
+**Why:** Banning write verbs isn't enough: some read verbs are dangerous on subresources (`get pods/exec` can open a shell over WebSockets, `get nodes/proxy` reaches the kubelet API). `tests/test_rbac.py` lists every (apiGroup, resource) the agent may read and fails on anything else, plus wildcards, Secrets, `escalate`/`bind`/`impersonate`, `nonResourceURLs` and `aggregationRule`. It also checks the role grants exactly the allowlist, and runs a set of deliberately bad changes to prove each check fires.
+**Consequence:** Any new permission the MCP tools need is a two-line, reviewed change: the ClusterRole and the allowlist. The role reads EndpointSlices rather than the deprecated core Endpoints API, and Roles and RoleBindings so the agent can explain RBAC denials.
 
 ### 016 — Scenario format: one namespace per scenario, `expected.yaml` with a wait condition and `also_accept`
 **Why:** A namespace per scenario keeps them independent and makes cleanup one `kubectl delete namespace`. Each `expected.yaml` holds the right answer plus how to tell the failure has actually shown (a container waiting or terminated reason, an event, or text in the logs), so seeding waits on the real signal instead of a fixed sleep. Some failures have more than one fair answer (the ServiceAccount or the Deployment using it), so `also_accept` lists the alternatives for grading in M3.

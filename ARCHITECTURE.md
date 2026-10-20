@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category` and `ResourceRef` in `models.py`. The Kubernetes tools, RBAC and the `Diagnosis` model below are the target design for Milestones 1–3.
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category` and `ResourceRef` in `models.py`; the read-only RBAC in `deploy/rbac/` and its test. The Kubernetes tools and the `Diagnosis` model below are the target design for Milestones 1–3.
 
 ## Overview
 
@@ -43,8 +43,9 @@ In real use a human reads the diagnosis; in evals the grader scores it.
 
 ## Security model
 
-- The MCP server runs under its own ServiceAccount bound to a ClusterRole with `get`, `list` and `watch` only, plus `create` on `subjectaccessreviews`.
-- No access to Secrets. A test asserts the role has no write verbs and no Secrets access, so a change to the role fails CI.
+- The MCP server runs as the ServiceAccount `triage-system/triage-agent`, bound by a ClusterRoleBinding (DECISIONS 018) to the ClusterRole `triage-agent-read` in `deploy/rbac/`.
+- That role has `get`, `list` and `watch` on pods, `pods/log`, events (core and `events.k8s.io`), services, configmaps, serviceaccounts, deployments, replicasets, endpointslices, roles and rolebindings, plus `create` on `subjectaccessreviews` for `can_i`. Nothing else.
+- No access to Secrets. `tests/test_rbac.py` checks every rule against that allowlist and fails on write verbs, Secrets, wildcards, subresources like `pods/exec`, escalation verbs, `nonResourceURLs` and `aggregationRule` (DECISIONS 017), so a change to the role fails CI.
 - Tools are scoped to one namespace per run, passed in by the caller, never chosen by the model.
 - Everything from the cluster (logs, events, annotations) is untrusted data. Logs can contain text that looks like instructions; an M4 scenario tests this.
 
@@ -132,7 +133,7 @@ cluster-triage-agent/
     providers/         adapter: Claude + one comparison model
     evals/             eval runner
     cli.py             triage --namespace <ns>
-  deploy/rbac/         ServiceAccount, ClusterRole, binding   (M1)
+  deploy/rbac/         ServiceAccount, read-only ClusterRole, binding
   scenarios/NN-name/   manifest.yaml + expected.yaml
   evals/               cases, baseline, results
   tests/               offline unit tests and fixtures

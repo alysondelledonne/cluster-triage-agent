@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 1 in progress. Scenarios 1–6 and the seeding script are written and tested offline; next is running them against `kind-triage`.
+**Status:** Milestone 1 in progress. Scenarios 1–6 seed and fail as expected on `kind-triage`, and the read-only RBAC is written and tested; next is the MCP server's five read tools.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -24,6 +24,9 @@ uv run triage-eval --provider fake --gate
 kind create cluster --name triage
 uv run triage-seed list          # the six failure scenarios
 uv run triage-seed check         # seed each one, wait for the failure, clean up
+kubectl --context kind-triage apply -f deploy/rbac/   # the agent's read-only ServiceAccount
+kubectl --context kind-triage auth can-i --list \
+  --as=system:serviceaccount:triage-system:triage-agent   # reads only; no secrets, no writes
 ```
 
 ## Progress
@@ -43,8 +46,8 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 
 - [x] Scenarios 1–6 as manifests plus `expected.yaml`, each in its own namespace
 - [x] Script that applies a scenario, waits until the failure shows, and deletes it afterward (`triage-seed`)
-- [ ] All six scenarios verified on `kind-triage` with `triage-seed check`
-- [ ] RBAC manifests and a test that fails if the ClusterRole gains a write verb or Secrets access
+- [x] All six scenarios verified on `kind-triage` with `triage-seed check` (2026-10-20)
+- [x] RBAC manifests and a test that fails if the ClusterRole gains a write verb or Secrets access
 - [ ] MCP server with the five read tools, running under that ServiceAccount
 - [ ] Output trimming (log line cap, managed fields removed)
 - [ ] Each tool's real output per scenario recorded into `tests/fixtures/`

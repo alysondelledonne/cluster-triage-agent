@@ -1,0 +1,16 @@
+# Grants the read-only role to the triage-agent ServiceAccount in every
+# namespace. A ClusterRoleBinding rather than one RoleBinding per scenario
+# namespace keeps seeding simple; the tools still only look at the namespace
+# the caller passes in (DECISIONS.md 003, 018).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: triage-agent-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: triage-agent-read
+subjects:
+  - kind: ServiceAccount
+    name: triage-agent
+    namespace: triage-system

@@ -61,13 +61,13 @@ Now:
 - `src/triage/models.py` shared types (`Category`, `ResourceRef`); `Diagnosis` joins in M2
 - `src/triage/scenarios.py` the `triage-seed` command: seed, wait for, and delete scenarios
 - `scenarios/NN-name/` `manifest.yaml` (breaks something) + `expected.yaml` (correct answer)
+- `deploy/rbac/` the agent's ServiceAccount, read-only ClusterRole and binding
 - `config/pricing.json` per-model prices
 - `tests/` unit tests (offline)
 
 Coming in M1–M3:
 - `src/triage/mcp_server/` read-only Kubernetes tools and output trimming
 - `src/triage/models.py` Diagnosis schema (Pydantic)
-- `deploy/rbac/` ServiceAccount, ClusterRole, binding
 
 ## Conventions
 - Python 3.12, type hints everywhere, Pydantic for anything crossing a boundary.
