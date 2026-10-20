@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.7",
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
+    "kubernetes>=37",
 ]
 
 [project.optional-dependencies]
@@ -24,7 +25,7 @@ tracing = [
 
 [project.scripts]
 triage = "triage.cli:main"
-triage-mcp = "triage.mcp_server.server:main"
+triage-mcp = "triage.mcp_server.kube_server:main"
 triage-eval = "triage.evals.runner:main"
 triage-seed = "triage.scenarios:main"
 

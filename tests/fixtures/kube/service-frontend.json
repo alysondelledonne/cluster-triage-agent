@@ -1,0 +1,6 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {"name": "frontend", "namespace": "triage-05-failing-probe", "uid": "svc-uid", "resourceVersion": "53001"},
+  "spec": {"selector": {"app": "frontend"}, "ports": [{"port": 80, "targetPort": 80, "protocol": "TCP"}], "clusterIP": "10.96.12.34", "type": "ClusterIP"}
+}

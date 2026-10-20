@@ -44,6 +44,8 @@ Design doc: see "cluster-triage-agent: Design & Milestones" (milestones M0–M4)
 - Offline eval gate (what CI runs): `uv run triage-eval --provider fake --gate`
 - Real evals (call model APIs, cost money; run only when asked): `uv run triage-eval --provider anthropic --repeats 3`
 - Local cluster: `kind create cluster --name triage` / `kind delete cluster --name triage`
+- MCP server: `uv run triage-mcp --namespace <ns> --kubeconfig ~/.kube/triage-agent.yaml`
+  (refuses to start unless connected as the agent's ServiceAccount; see README)
 - Scenarios: `uv run triage-seed list | apply <n> | delete <n> | check` (writes to the cluster;
   kind contexts only, default `kind-triage`)
 
@@ -55,7 +57,9 @@ Now:
 - `README.md` overview and progress tracker; `ARCHITECTURE.md` design; `DECISIONS.md` decision log
 - `src/triage/providers/` model adapter (Claude, OpenAI-compatible) + offline fakes
 - `src/triage/agent/` agent loop with step cap, MCP tool bridge
-- `src/triage/mcp_server/` MCP server (example tools for now)
+- `src/triage/mcp_server/` `kube_server.py` the read-only Kubernetes MCP server (`triage-mcp`), `kube.py`
+  the cluster reader, `trim.py` output trimming; `server.py` is the template's example server,
+  still used by `triage` and the eval gate until M2
 - `src/triage/evals/` eval runner; data in `evals/` (cases, baseline, results)
 - `src/triage/cli.py` the `triage` command
 - `src/triage/models.py` shared types (`Category`, `ResourceRef`); `Diagnosis` joins in M2
@@ -66,7 +70,6 @@ Now:
 - `tests/` unit tests (offline)
 
 Coming in M1–M3:
-- `src/triage/mcp_server/` read-only Kubernetes tools and output trimming
 - `src/triage/models.py` Diagnosis schema (Pydantic)
 
 ## Conventions

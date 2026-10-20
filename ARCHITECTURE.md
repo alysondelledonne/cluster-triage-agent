@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category` and `ResourceRef` in `models.py`; the read-only RBAC in `deploy/rbac/` and its test. The Kubernetes tools and the `Diagnosis` model below are the target design for Milestones 1–3.
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category` and `ResourceRef` in `models.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming. `submit_diagnosis`, the `Diagnosis` model and the agent wiring below are the target design for Milestones 2–3. Until then `triage` and the offline eval gate still use the template's example tools.
 
 ## Overview
 
@@ -32,21 +32,32 @@ In real use a human reads the diagnosis; in evals the grader scores it.
 
 ## MCP tools
 
-| Tool | Returns | Kubernetes access |
-| --- | --- | --- |
-| `list_pods` | Pods in a namespace with phase, restarts, container states, last termination reason | get, list pods |
-| `get_events` | Recent events for a namespace or one object, newest first | list events |
-| `get_logs` | Last N lines (default 100) of a container, with a `previous=true` option for crashed containers | get pods/log |
-| `describe` | A trimmed view of one resource (pod, deployment, service, configmap) | get on those kinds |
-| `can_i` | Whether a service account may perform a verb on a resource | create subjectaccessreviews |
-| `submit_diagnosis` | Ends the run with the structured diagnosis below | none |
+Built in `src/triage/mcp_server/kube_server.py`; started with `triage-mcp --namespace <ns> --kubeconfig <agent kubeconfig>`.
+
+| Tool | Arguments | Returns | Kubernetes access |
+| --- | --- | --- | --- |
+| `list_pods` | none | Each pod's phase, readiness, restarts, owner, and every container's current and last state (reason, exit code) | list pods |
+| `get_events` | optional `kind`, `name` | Events newest first, at most 30, optionally for one object | list events |
+| `get_logs` | `pod`, optional `container`, `previous`, `tail` | Last `tail` lines (default 100, max 200); `previous=true` for the run before a crash | get pods/log |
+| `describe` | `kind`, `name` | One pod, deployment, replicaset, service, configmap, serviceaccount, role or rolebinding, trimmed. ConfigMaps show key names only; ServiceAccounts drop their Secret names; Services add a ready/not-ready endpoint count | get on those kinds, list endpointslices |
+| `can_i` | `service_account`, `verb`, `resource`, optional `group`, `subresource` | Whether that ServiceAccount (in the run's namespace) may do it, from a SubjectAccessReview | create subjectaccessreviews |
+| `submit_diagnosis` (M2) | the diagnosis | Ends the run with the structured diagnosis below | none |
+
+How the server is put together:
+
+- **One namespace per server.** `build_server(namespace, reader)` closes every tool over the namespace given at startup; no tool has a namespace argument (DECISIONS 020).
+- **Identity check at startup.** `triage-mcp` asks the API server who it is (a SelfSubjectReview) and exits unless the answer is `system:serviceaccount:triage-system:triage-agent` (DECISIONS 020).
+- **A reader interface.** Tools call a `KubeReader` (`kube.py`), never the client directly. `KubeClientReader` wraps the official Kubernetes Python client (DECISIONS 019) and returns the API's camelCase dicts; tests use a fake that serves `tests/fixtures/kube/`.
+- **Trimming** (`trim.py`) drops `managedFields`, `resourceVersion`, `uid`, `generation` and the `last-applied-configuration` annotation, cuts log lines and event messages at 500 characters, and caps every result at 8,000 characters. Results are YAML, which costs fewer tokens than JSON.
+- **Arguments are checked before any API call:** object names must be valid Kubernetes names, `kind` and `verb` come from fixed lists. Errors are raised as MCP `ToolError`s so the model sees the reason (for example `deployments "x" not found`).
 
 ## Security model
 
 - The MCP server runs as the ServiceAccount `triage-system/triage-agent`, bound by a ClusterRoleBinding (DECISIONS 018) to the ClusterRole `triage-agent-read` in `deploy/rbac/`.
 - That role has `get`, `list` and `watch` on pods, `pods/log`, events (core and `events.k8s.io`), services, configmaps, serviceaccounts, deployments, replicasets, endpointslices, roles and rolebindings, plus `create` on `subjectaccessreviews` for `can_i`. Nothing else.
 - No access to Secrets. `tests/test_rbac.py` checks every rule against that allowlist and fails on write verbs, Secrets, wildcards, subresources like `pods/exec`, escalation verbs, `nonResourceURLs` and `aggregationRule` (DECISIONS 017), so a change to the role fails CI.
-- Tools are scoped to one namespace per run, passed in by the caller, never chosen by the model.
+- Tools are scoped to one namespace per run, fixed when the server starts, never chosen by the model.
+- The server refuses to start under any identity but the agent's ServiceAccount, so it can't run with admin credentials by mistake. Its kubeconfig holds a one-hour token for that ServiceAccount only.
 - Everything from the cluster (logs, events, annotations) is untrusted data. Logs can contain text that looks like instructions; an M4 scenario tests this.
 
 ## Agent loop
@@ -126,7 +137,7 @@ cluster-triage-agent/
   ARCHITECTURE.md      this file
   DECISIONS.md         decision log
   src/triage/
-    mcp_server/        read-only tools + output trimming
+    mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py; server.py = template example until M2
     agent/             loop, system prompt, tool-call cap
     models.py          Category, ResourceRef; Diagnosis schema in M2
     scenarios.py       triage-seed: seed, wait for, delete scenarios

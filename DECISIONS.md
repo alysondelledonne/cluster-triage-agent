@@ -4,6 +4,9 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 021 | 2026-10-20 | `describe` shows ConfigMap keys but not values, and drops ServiceAccount Secret names | Accepted |
+| 020 | 2026-10-20 | Fix the namespace when the MCP server starts, and refuse to start under any identity but the agent's ServiceAccount | Accepted |
+| 019 | 2026-10-20 | MCP tools use the official Kubernetes Python client behind a `KubeReader` interface | Accepted |
 | 018 | 2026-10-20 | Bind the read-only role with a ClusterRoleBinding, not a RoleBinding per namespace | Accepted |
 | 017 | 2026-10-20 | RBAC test checks resources against an allowlist, not just verbs | Accepted |
 | 016 | 2026-10-20 | Scenario format: one namespace per scenario, `expected.yaml` with a wait condition and `also_accept` | Accepted |
@@ -29,6 +32,18 @@ A running log of design and project decisions: what was decided, why, and what i
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 021 — `describe` shows ConfigMap keys but not values, and drops ServiceAccount Secret names
+**Why:** ConfigMap values can hold anything, including things that should have been Secrets. The failures here only need to know which keys exist (scenario 4 is a missing key), so the model gets key names and sizes. A ServiceAccount lists the names of its token and pull Secrets; the agent never looks at Secrets, so those go too.
+**Consequence:** If a future scenario hinges on a wrong ConfigMap value, this needs revisiting with a new entry; for now a diagnosis that needs a value says so.
+
+### 020 — Fix the namespace when the MCP server starts, and refuse to start under any identity but the agent's ServiceAccount
+**Why:** 003 says the caller picks the namespace. Taking it as a startup argument and closing every tool over it means no tool has a namespace parameter, so the model can't ask for another one at all. RBAC (002) only keeps the agent read-only if the server actually runs as the agent's ServiceAccount; with your own kubeconfig it would have admin rights. A SelfSubjectReview at startup turns that mistake into a refusal.
+**Consequence:** One server process per namespace; the M2 agent and evals start a server per run. Running the server needs a kubeconfig with a ServiceAccount token (README, "Run the MCP server"); tokens last an hour.
+
+### 019 — MCP tools use the official Kubernetes Python client behind a `KubeReader` interface
+**Why:** It returns structured objects, so there's no parsing of `kubectl` output, and `can_i` is one explicit `create_subject_access_review` call rather than a generic `kubectl create -f -` inside a read-only server. Version 37 ships type hints, so mypy checks the calls. A small `KubeReader` protocol keeps the client out of the tools, so unit tests serve fixtures through a fake. The seeder keeps using `kubectl` (015).
+**Consequence:** Adds the `kubernetes` package (approved 2026-10-20) and its dependencies. Fixtures are the API's camelCase JSON, the same shape `kubectl get -o json` prints.
 
 ### 018 — Bind the read-only role with a ClusterRoleBinding, not a RoleBinding per namespace
 **Why:** Every scenario runs in its own namespace (016), so per-namespace RoleBindings would mean seeding creates a binding each time and the agent can't run against a namespace nobody prepared. The tools are still limited to the one namespace the caller passes in (003), and the role is read-only with no Secrets (017).

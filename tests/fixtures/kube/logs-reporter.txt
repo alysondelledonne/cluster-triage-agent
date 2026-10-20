@@ -1,0 +1,11 @@
+2026-10-20T20:05:00Z loading settings from configmap report-settings
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {},
+  "status": "Failure",
+  "message": "configmaps \"report-settings\" is forbidden: User \"system:serviceaccount:triage-06-rbac-denied:reporter\" cannot get resource \"configmaps\" in API group \"\" in the namespace \"triage-06-rbac-denied\"",
+  "reason": "Forbidden",
+  "details": {"name": "report-settings", "kind": "configmaps"},
+  "code": 403
+}

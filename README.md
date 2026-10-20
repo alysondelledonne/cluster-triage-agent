@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 1 in progress. Scenarios 1–6 seed and fail as expected on `kind-triage`, and the read-only RBAC is written and tested; next is the MCP server's five read tools.
+**Status:** Milestone 1 in progress. Scenarios, read-only RBAC and the MCP server's five read tools (with output trimming) are built and tested offline; next is recording each tool's real output per scenario into `tests/fixtures/`.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -29,6 +29,22 @@ kubectl --context kind-triage auth can-i --list \
   --as=system:serviceaccount:triage-system:triage-agent   # reads only; no secrets, no writes
 ```
 
+## Run the MCP server
+
+The server reads one namespace, fixed when it starts, and refuses to start unless it is connected as the agent's ServiceAccount. Give it a kubeconfig that holds a short-lived token for that ServiceAccount and nothing else. The token lasts an hour; run these again to renew it.
+
+```bash
+kubectl --context kind-triage config view --minify --raw > ~/.kube/triage-agent.yaml
+chmod 600 ~/.kube/triage-agent.yaml
+kubectl --kubeconfig ~/.kube/triage-agent.yaml config unset users.kind-triage
+kubectl --kubeconfig ~/.kube/triage-agent.yaml config set-credentials triage-agent --token="$(kubectl --context kind-triage -n triage-system create token triage-agent --duration=1h)"
+kubectl --kubeconfig ~/.kube/triage-agent.yaml config set-context --current --user=triage-agent
+kubectl --kubeconfig ~/.kube/triage-agent.yaml auth whoami
+uv run triage-mcp --namespace triage-01-crashloop --kubeconfig ~/.kube/triage-agent.yaml
+```
+
+`auth whoami` should print `system:serviceaccount:triage-system:triage-agent`. `triage-mcp` then waits for an MCP client on stdin and stdout; connect it to Claude Desktop or Claude Code as a stdio server with that same command.
+
 ## Progress
 
 Milestones 1–3 are the MVP. Each milestone ends in something that runs and is committed.
@@ -48,8 +64,8 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 - [x] Script that applies a scenario, waits until the failure shows, and deletes it afterward (`triage-seed`)
 - [x] All six scenarios verified on `kind-triage` with `triage-seed check` (2026-10-20)
 - [x] RBAC manifests and a test that fails if the ClusterRole gains a write verb or Secrets access
-- [ ] MCP server with the five read tools, running under that ServiceAccount
-- [ ] Output trimming (log line cap, managed fields removed)
+- [x] MCP server with the five read tools, running under that ServiceAccount
+- [x] Output trimming (log line cap, managed fields removed)
 - [ ] Each tool's real output per scenario recorded into `tests/fixtures/`
 - [ ] Server connected to Claude and one scenario triaged by chatting, as a sanity check
 

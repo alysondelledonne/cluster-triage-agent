@@ -1,0 +1,7 @@
+{
+  "apiVersion": "v1",
+  "kind": "ConfigMap",
+  "metadata": {"name": "app-config", "namespace": "triage-04-missing-config", "uid": "cm-uid", "resourceVersion": "51002"},
+  "data": {"LOG_FORMAT": "json", "DATABASE_URL": "postgres://db.billing.svc:5432/billing"},
+  "binaryData": {"logo.png": "iVBORw0KGgo="}
+}
