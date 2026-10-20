@@ -26,6 +26,15 @@ Design doc: see "cluster-triage-agent: Design & Milestones" (milestones M0–M4)
 3. Keep changes small and focused on the current milestone. Ask before adding dependencies.
 4. Run the checks below before saying a change is done.
 5. Explain non-obvious decisions in comments or the README; I need to be able to explain every line.
+6. Keep the project docs current in the same commit as the change that affects them:
+   - `DECISIONS.md`: add a numbered entry (date, decision, why, consequence) whenever we choose
+     between options, change the design, or defer something. Never rewrite an old entry; add a new
+     one that supersedes it. Move settled items out of "Open questions".
+   - `ARCHITECTURE.md`: update when components, tools, data flow, schemas or the security model
+     change. It describes the design as it stands, including what's built vs planned.
+   - `README.md`: tick progress items as they're finished, update the Status line, and mark a
+     milestone done with its date when its "Done when" check passes.
+   When a session makes a decision but doesn't change code, still update DECISIONS.md.
 
 ## Commands
 - Install: `uv sync` (tracing: `uv sync --extra tracing`)
@@ -41,6 +50,7 @@ Started from ai-project-template. The example MCP tools and eval cases are place
 that M1 and M2 replace.
 
 Now:
+- `README.md` overview and progress tracker; `ARCHITECTURE.md` design; `DECISIONS.md` decision log
 - `src/triage/providers/` model adapter (Claude, OpenAI-compatible) + offline fakes
 - `src/triage/agent/` agent loop with step cap, MCP tool bridge
 - `src/triage/mcp_server/` MCP server (example tools for now)

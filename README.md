@@ -2,7 +2,10 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-> **Status:** Milestone 0 (setup). The repo is the project template with the package renamed; the Kubernetes tools, scenarios and evals arrive in Milestones 1–3.
+**Status:** Milestone 0 (setup) done. Milestone 1 (broken cluster and read-only tools) is next.
+
+- How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Why it works that way: [DECISIONS.md](DECISIONS.md)
 
 ## Why another triage tool
 
@@ -18,14 +21,65 @@ uv sync
 cp .env.example .env            # add an API key and model ID
 uv run pytest                   # offline, no API calls
 uv run triage-eval --provider fake --gate
+kind create cluster --name triage
 ```
 
-## Planned
+## Progress
 
-- Read-only tools: `list_pods`, `get_events`, `get_logs`, `describe`, `can_i`
-- Structured diagnosis: category, affected resource, root cause, quoted evidence, YAML patch, confidence
-- Scenarios: CrashLoop, ImagePull, OOMKilled, missing config, failing probe, RBAC denial
-- Results table, runbook and known failure modes in this README
+Milestones 1–3 are the MVP. Each milestone ends in something that runs and is committed.
+
+### Milestone 0: Setup — done 2026-10-20
+
+- [x] Policy check, personal Anthropic API key with a monthly spend cap (comparison-model key deferred to M3)
+- [x] Repo created from ai-project-template; package renamed to `triage`
+- [x] Docker, `kind` and `kubectl` installed; `kind-triage` cluster running (Kubernetes v1.37.0)
+- [x] CLAUDE.md with the goal, the read-only rule, "write tests first", and the commands
+
+**Done when:** CI is green on an empty project and `kubectl get nodes` works against kind. ✅
+
+### Milestone 1: Broken cluster and read-only tools — next
+
+- [ ] Scenarios 1–6 as manifests plus `expected.yaml`, each in its own namespace
+- [ ] Script that applies a scenario, waits until the failure shows, and deletes it afterward
+- [ ] RBAC manifests and a test that fails if the ClusterRole gains a write verb or Secrets access
+- [ ] MCP server with the five read tools, running under that ServiceAccount
+- [ ] Output trimming (log line cap, managed fields removed)
+- [ ] Each tool's real output per scenario recorded into `tests/fixtures/`
+- [ ] Server connected to Claude and one scenario triaged by chatting, as a sanity check
+
+**Done when:** all six scenarios seed reliably, every tool has tests, and a scenario can be diagnosed by hand through the MCP server.
+
+### Milestone 2: The agent
+
+- [ ] `Diagnosis` Pydantic model and the `submit_diagnosis` tool
+- [ ] Loop calling tools through the MCP client, with the tool-call cap and a required submission
+- [ ] System prompt with the triage order (pods, events, logs, config, permissions)
+- [ ] Every run logged to JSON lines: tool calls, tokens, latency, cost
+- [ ] CLI: `triage --namespace demo-crashloop` prints a readable report
+- [ ] Evidence quotes checked against the real tool output
+- [ ] At least 4 of 6 scenarios right by hand; misses noted
+
+**Done when:** one command diagnoses any scenario and prints root cause, evidence and a proposed fix.
+
+### Milestone 3: Evals, CI and README — ship and apply
+
+- [ ] `run_evals`: for each scenario and model, seed, triage 3 times, grade, reset
+- [ ] Accuracy, evidence grounding, p50/p95 latency, cost per incident and tool calls in a results table
+- [ ] Claude vs the comparison model; which wins on accuracy, cost and speed
+- [ ] One change made from the results, with before and after
+- [ ] GitHub Actions: checks on every PR; a manual workflow that spins up kind and runs the evals
+- [ ] README: results table, runbook, known failure modes, "How I built this with Claude Code"
+- [ ] Demo GIF of the CLI diagnosing a scenario
+
+**Done when:** a stranger can clone the repo, follow the README, and reproduce the results table.
+
+### Milestone 4: Make it stronger
+
+- [ ] Fix validity: server-side dry run, then apply in the eval cluster and check the pod becomes Ready
+- [ ] Scenarios 7 (NetworkPolicy) and 8 (red herring), plus a log-injection scenario
+- [ ] Phoenix tracing and a write-up of one failed run debugged from its trace
+- [ ] Optional: read-only run against the homelab cluster
+- [ ] Blog post: what broke, what the evals showed, model comparison
 
 ## License
 
