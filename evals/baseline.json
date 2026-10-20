@@ -1,0 +1,6 @@
+{
+  "_comment": "CI fails if any metric drops below these minimums. Raise them as the project improves; never lower them to make a build pass without writing down why.",
+  "answer_accuracy": 1.0,
+  "tool_accuracy": 1.0,
+  "answered_rate": 1.0
+}

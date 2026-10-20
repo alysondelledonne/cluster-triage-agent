@@ -1,0 +1,39 @@
+name: Live eval (manual)
+
+# Runs the eval suite against real models. Costs money, so it only runs when
+# started by hand from the Actions tab. Add the API keys as repository secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: "Space-separated: anthropic openai grok"
+        default: "anthropic"
+      repeats:
+        description: "Runs per case"
+        default: "3"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync
+      - name: Run evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          XAI_MODEL: ${{ vars.XAI_MODEL }}
+        run: |
+          args=""
+          for p in ${{ inputs.providers }}; do args="$args --provider $p"; done
+          uv run triage-eval $args --repeats ${{ inputs.repeats }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: evals/results/

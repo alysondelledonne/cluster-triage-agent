@@ -1,0 +1,4 @@
+{
+  "_comment": "USD per 1M tokens. Fill in from each provider's current pricing page; cost is reported as null for models not listed here.",
+  "example-model-id": {"input": 0.0, "output": 0.0}
+}
