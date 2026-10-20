@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 1 in progress. Scenarios, read-only RBAC and the MCP server's five read tools (with output trimming) are built and tested offline; next is recording each tool's real output per scenario into `tests/fixtures/`.
+**Status:** Milestone 1 in progress. Scenarios, read-only RBAC and the MCP server's five read tools (with output trimming) are built and tested offline; every scenario's real API responses are recorded into `tests/fixtures/scenarios/` and replayed offline. Next is connecting the server to Claude and triaging one scenario by chatting.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -45,6 +45,14 @@ uv run triage-mcp --namespace triage-01-crashloop --kubeconfig ~/.kube/triage-ag
 
 `auth whoami` should print `system:serviceaccount:triage-system:triage-agent`. `triage-mcp` then waits for an MCP client on stdin and stdout; connect it to Claude Desktop or Claude Code as a stdio server with that same command.
 
+### Record the scenarios for offline tests
+
+`triage-seed record` seeds each scenario with your context, waits for the failure plus 15 seconds, reads everything the tools could ask for through the agent's kubeconfig above, saves the raw API responses to `tests/fixtures/scenarios/NN-name/recording.json`, and deletes the scenario. The tests replay these through the real tools. Run it again after changing a scenario.
+
+```bash
+uv run triage-seed record
+```
+
 ## Progress
 
 Milestones 1–3 are the MVP. Each milestone ends in something that runs and is committed.
@@ -66,7 +74,7 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 - [x] RBAC manifests and a test that fails if the ClusterRole gains a write verb or Secrets access
 - [x] MCP server with the five read tools, running under that ServiceAccount
 - [x] Output trimming (log line cap, managed fields removed)
-- [ ] Each tool's real output per scenario recorded into `tests/fixtures/`
+- [x] Each tool's real output per scenario recorded into `tests/fixtures/` (`triage-seed record`)
 - [ ] Server connected to Claude and one scenario triaged by chatting, as a sanity check
 
 **Done when:** all six scenarios seed reliably, every tool has tests, and a scenario can be diagnosed by hand through the MCP server.

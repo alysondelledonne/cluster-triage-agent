@@ -46,8 +46,9 @@ Design doc: see "cluster-triage-agent: Design & Milestones" (milestones M0–M4)
 - Local cluster: `kind create cluster --name triage` / `kind delete cluster --name triage`
 - MCP server: `uv run triage-mcp --namespace <ns> --kubeconfig ~/.kube/triage-agent.yaml`
   (refuses to start unless connected as the agent's ServiceAccount; see README)
-- Scenarios: `uv run triage-seed list | apply <n> | delete <n> | check` (writes to the cluster;
-  kind contexts only, default `kind-triage`)
+- Scenarios: `uv run triage-seed list | apply <n> | delete <n> | check | record` (writes to the
+  cluster; kind contexts only, default `kind-triage`; `record` reads through the agent's kubeconfig
+  and saves `tests/fixtures/scenarios/NN-name/recording.json`)
 
 ## Layout
 Started from ai-project-template. The example MCP tools and eval cases are placeholders
@@ -58,16 +59,17 @@ Now:
 - `src/triage/providers/` model adapter (Claude, OpenAI-compatible) + offline fakes
 - `src/triage/agent/` agent loop with step cap, MCP tool bridge
 - `src/triage/mcp_server/` `kube_server.py` the read-only Kubernetes MCP server (`triage-mcp`), `kube.py`
-  the cluster reader, `trim.py` output trimming; `server.py` is the template's example server,
-  still used by `triage` and the eval gate until M2
+  the cluster reader, `trim.py` output trimming, `replay.py` record and replay; `server.py` is the
+  template's example server, still used by `triage` and the eval gate until M2
 - `src/triage/evals/` eval runner; data in `evals/` (cases, baseline, results)
 - `src/triage/cli.py` the `triage` command
 - `src/triage/models.py` shared types (`Category`, `ResourceRef`); `Diagnosis` joins in M2
-- `src/triage/scenarios.py` the `triage-seed` command: seed, wait for, and delete scenarios
+- `src/triage/scenarios.py` the `triage-seed` command: seed, wait for, record and delete scenarios
 - `scenarios/NN-name/` `manifest.yaml` (breaks something) + `expected.yaml` (correct answer)
 - `deploy/rbac/` the agent's ServiceAccount, read-only ClusterRole and binding
 - `config/pricing.json` per-model prices
-- `tests/` unit tests (offline)
+- `tests/` unit tests (offline); `tests/fixtures/kube/` hand-written API payloads,
+  `tests/fixtures/scenarios/` recorded per scenario and replayed by `mcp_server/replay.py`
 
 Coming in M1–M3:
 - `src/triage/models.py` Diagnosis schema (Pydantic)

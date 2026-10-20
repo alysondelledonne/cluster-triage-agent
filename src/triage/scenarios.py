@@ -12,11 +12,17 @@ isn't a kind cluster. The agent itself only ever reads (see DECISIONS.md 002).
     uv run triage-seed apply crashloop          # seed and wait for the failure
     uv run triage-seed delete crashloop
     uv run triage-seed check                    # seed, wait, delete each in turn
+    uv run triage-seed record                   # seed, wait, record every API answer, delete
+
+`record` reads through the agent's own kubeconfig (README, "Run the MCP server"),
+never your admin context, and saves raw API responses to
+tests/fixtures/scenarios/NN-name/recording.json for offline replay (DECISIONS.md 022).
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import subprocess
 import sys
@@ -29,9 +35,15 @@ from typing import Annotated, Any, Literal
 import yaml
 from pydantic import BaseModel, Field
 
+from .mcp_server import trim
+from .mcp_server.kube import Kind, KubeClientReader, KubeError, KubeReader, service_account_subject
+from .mcp_server.kube_server import IdentityError, require_agent_identity
+from .mcp_server.replay import Recording, RecordingReader, SecretInRecording
 from .models import Category, ResourceRef
 
 DEFAULT_CONTEXT = "kind-triage"
+DEFAULT_AGENT_KUBECONFIG = Path.home() / ".kube" / "triage-agent.yaml"
+DEFAULT_FIXTURES_DIR = Path("tests/fixtures/scenarios")
 
 # ---------- wait conditions: how to tell a scenario's failure has shown ----------
 
@@ -221,12 +233,28 @@ def seed(
     sleep: Callable[[float], None] = time.sleep,
 ) -> SeedResult:
     """Apply the scenario, then poll until its failure shows or the timeout passes."""
-    limit = timeout_s if timeout_s is not None else scenario.expected.seed.timeout_s
     kubectl.run("apply", "-f", str(scenario.manifest_path))
+    seconds = wait_for_failure(
+        scenario, kubectl, timeout_s=timeout_s, poll_s=poll_s, clock=clock, sleep=sleep
+    )
+    return SeedResult(scenario=scenario.name, seconds=seconds)
+
+
+def wait_for_failure(
+    scenario: Scenario,
+    kubectl: Kubectl,
+    *,
+    timeout_s: float | None = None,
+    poll_s: float = 3,
+    clock: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+) -> float:
+    """Poll until the scenario's failure signal shows; return how many seconds that took."""
+    limit = timeout_s if timeout_s is not None else scenario.expected.seed.timeout_s
     start = clock()
     while True:
         if failure_shown(scenario, kubectl):
-            return SeedResult(scenario=scenario.name, seconds=round(clock() - start, 1))
+            return round(clock() - start, 1)
         if clock() - start >= limit:
             cond = scenario.expected.seed.wait_for
             raise SeedTimeout(
@@ -243,6 +271,130 @@ def delete(scenario: Scenario, kubectl: Kubectl) -> None:
     )
 
 
+# ---------- recording ----------
+
+# Manifest kinds the agent's `describe` tool can read, by the name the tool uses.
+DESCRIBABLE: dict[str, Kind] = {
+    "Pod": "pod",
+    "Deployment": "deployment",
+    "ReplicaSet": "replicaset",
+    "Service": "service",
+    "ConfigMap": "configmap",
+    "ServiceAccount": "serviceaccount",
+    "Role": "role",
+    "RoleBinding": "rolebinding",
+}
+
+# Permission questions asked for every ServiceAccount, for the agent's `can_i` tool.
+ACCESS_CHECKS = [("get", "configmaps"), ("list", "pods")]
+
+
+def _container_names(pod: dict[str, Any]) -> list[str]:
+    status = pod.get("status") or {}
+    statuses = [
+        *(status.get("initContainerStatuses") or []),
+        *(status.get("containerStatuses") or []),
+    ]
+    if statuses:
+        return [c["name"] for c in statuses]
+    spec = pod.get("spec") or {}
+    containers = [*(spec.get("initContainers") or []), *(spec.get("containers") or [])]
+    return [c["name"] for c in containers]
+
+
+def record_scenario(scenario: Scenario, reader: KubeReader, *, server_version: str) -> Recording:
+    """Ask the cluster everything the agent's tools could ask about this scenario.
+
+    Every answer, errors included (e.g. no previous logs before a restart), ends up
+    in the returned Recording. Reads only, through `reader`, after checking it is
+    the agent's own identity.
+    """
+    ns = scenario.expected.namespace
+    rec = RecordingReader(
+        reader, scenario=scenario.name, namespace=ns, server_version=server_version
+    )
+    require_agent_identity(rec)
+
+    def attempt(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+        # A failed read is already in the recording; the agent will see the same error.
+        with contextlib.suppress(KubeError):
+            fn(*args, **kwargs)
+
+    pods = rec.list_pods(ns)
+    rec.list_events(ns)
+    accounts = {"default"}
+    for pod in pods:
+        name = pod["metadata"]["name"]
+        attempt(rec.read, "pod", ns, name)
+        for owner in pod["metadata"].get("ownerReferences") or []:
+            if owner.get("kind") == "ReplicaSet":
+                attempt(rec.read, "replicaset", ns, owner["name"])
+        for container in _container_names(pod):
+            for previous in (False, True):
+                attempt(
+                    rec.read_log,
+                    ns,
+                    name,
+                    container=container,
+                    previous=previous,
+                    tail=trim.MAX_LOG_LINES,
+                )
+        if (pod.get("spec") or {}).get("serviceAccountName"):
+            accounts.add(pod["spec"]["serviceAccountName"])
+
+    for doc in load_manifest(scenario.manifest_path):
+        kind = DESCRIBABLE.get(doc["kind"])
+        if kind is None:
+            continue
+        name = doc["metadata"]["name"]
+        attempt(rec.read, kind, ns, name)
+        if kind == "service":
+            attempt(rec.list_endpoint_slices, ns, name)
+        if kind == "serviceaccount":
+            accounts.add(name)
+
+    for account in sorted(accounts):
+        user, groups = service_account_subject(ns, account)
+        for verb, resource in ACCESS_CHECKS:
+            attempt(
+                rec.access_review,
+                ns,
+                user=user,
+                groups=groups,
+                verb=verb,
+                resource=resource,
+                group="",
+                subresource="",
+            )
+    return rec.recording
+
+
+def seed_and_record(
+    scenario: Scenario,
+    kubectl: Kubectl,
+    reader: KubeReader,
+    *,
+    server_version: str,
+    settle_s: float,
+    timeout_s: float | None = None,
+    poll_s: float = 3,
+    sleep: Callable[[float], None] = time.sleep,
+) -> tuple[SeedResult, Recording]:
+    """Seed, let events and restarts pile up, confirm the failure still shows, then record.
+
+    The second wait matters: a failing container cycles through states (CrashLoopBackOff,
+    then a restart that crashes again), so the signal seen at seeding time may have moved
+    on by the end of the settle pause. Reading straight after it shows again means the
+    recording holds the same signal the seeder waited for. The sweep starts within a
+    second of that check, well inside the back-off delay of a pod that has already
+    restarted a few times.
+    """
+    result = seed(scenario, kubectl, timeout_s=timeout_s, poll_s=poll_s, sleep=sleep)
+    sleep(settle_s)
+    wait_for_failure(scenario, kubectl, timeout_s=timeout_s, poll_s=poll_s, sleep=sleep)
+    return result, record_scenario(scenario, reader, server_version=server_version)
+
+
 # ---------- CLI ----------
 
 
@@ -250,13 +402,23 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("action", choices=["list", "apply", "delete", "check"])
+    parser.add_argument("action", choices=["list", "apply", "delete", "check", "record"])
     parser.add_argument("names", nargs="*", help="scenario numbers or names; default: all")
     parser.add_argument("--context", default=DEFAULT_CONTEXT)
     parser.add_argument("--allow-any-context", action="store_true")
     parser.add_argument("--scenarios-dir", type=Path, default=Path("scenarios"))
     parser.add_argument("--timeout", type=float, help="seconds; overrides expected.yaml")
-    parser.add_argument("--keep", action="store_true", help="check: leave scenarios running")
+    parser.add_argument("--keep", action="store_true", help="check, record: leave scenarios up")
+    parser.add_argument(
+        "--agent-kubeconfig",
+        default=str(DEFAULT_AGENT_KUBECONFIG),
+        help="record: kubeconfig with the agent's ServiceAccount token",
+    )
+    parser.add_argument("--agent-context", help="record: context in that kubeconfig")
+    parser.add_argument(
+        "--settle", type=float, default=15, help="record: seconds to wait after the failure shows"
+    )
+    parser.add_argument("--fixtures-dir", type=Path, default=DEFAULT_FIXTURES_DIR)
     args = parser.parse_args(argv)
 
     try:
@@ -273,6 +435,9 @@ def main(argv: list[str] | None = None) -> int:
             e = s.expected
             print(f"{s.name:20} {e.category:14} {e.affected_resource!s:28} {e.description}")
         return 0
+
+    if args.action == "record":
+        return _record(chosen, args)
 
     kubectl = Kubectl(context=args.context)
     failed = 0
@@ -291,6 +456,47 @@ def main(argv: list[str] | None = None) -> int:
             delete(s, kubectl)
     if args.action == "check":
         print(f"\n{len(chosen) - failed}/{len(chosen)} scenarios seeded")
+    return 1 if failed else 0
+
+
+def _record(chosen: list[Scenario], args: argparse.Namespace) -> int:
+    """Seed each scenario (your context), record it (the agent's), then clean up."""
+    try:
+        reader = KubeClientReader.from_kubeconfig(args.agent_kubeconfig, args.agent_context)
+        require_agent_identity(reader)  # fail before seeding anything
+        version = reader.server_version()
+    except (IdentityError, KubeError) as err:
+        print(f"error: {err}", file=sys.stderr)
+        return 2
+    except Exception as err:  # missing kubeconfig, expired token, cluster down
+        print(f"error: can't read the cluster as the agent: {err}", file=sys.stderr)
+        return 2
+
+    kubectl = Kubectl(context=args.context)
+    failed = 0
+    for s in chosen:
+        try:
+            result, recording = seed_and_record(
+                s,
+                kubectl,
+                reader,
+                server_version=version,
+                settle_s=args.settle,
+                timeout_s=args.timeout,
+            )
+            path = args.fixtures_dir / s.name / "recording.json"
+            recording.save(path)
+            print(
+                f"recorded {s.name:20} failure after {result.seconds:5.1f}s, "
+                f"{len(recording.calls)} calls -> {path}"
+            )
+        except (SeedTimeout, IdentityError, KubeError, SecretInRecording) as err:
+            failed += 1
+            print(f"FAILED   {s.name}: {err}", file=sys.stderr)
+        finally:
+            if not args.keep:
+                delete(s, kubectl)
+    print(f"\n{len(chosen) - failed}/{len(chosen)} scenarios recorded")
     return 1 if failed else 0
 
 

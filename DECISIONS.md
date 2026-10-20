@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 022 | 2026-10-20 | Record raw API responses per scenario at the reader level and replay them offline | Accepted |
 | 021 | 2026-10-20 | `describe` shows ConfigMap keys but not values, and drops ServiceAccount Secret names | Accepted |
 | 020 | 2026-10-20 | Fix the namespace when the MCP server starts, and refuse to start under any identity but the agent's ServiceAccount | Accepted |
 | 019 | 2026-10-20 | MCP tools use the official Kubernetes Python client behind a `KubeReader` interface | Accepted |
@@ -32,6 +33,10 @@ A running log of design and project decisions: what was decided, why, and what i
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 022 — Record raw API responses per scenario at the reader level and replay them offline
+**Why:** Tests and CI must not need a cluster, but they should run on what a real cluster says. Recording the raw responses under the `KubeReader` interface, rather than the tools' text, keeps the full trail of what the API returned and keeps recordings valid when trimming changes: the real tools and `trim.py` run over them on every test. The other option, saving each tool's final text, would go stale with every trimming change. Recording is an action of `triage-seed` because it already seeds, waits and deletes; the reads in between go through the agent's kubeconfig, never the admin context.
+**Consequence:** `ReplayReader` lives in `src/` so the M2 offline agent runs and M3 eval gate can use the same recordings. Recordings keep `managedFields` and are tens to hundreds of KB each. They must be re-recorded when a scenario changes, and an agent call the sweep didn't record replays as a "not in this recording" error, so the sweep grows if the agent needs more. Saving refuses token- or key-shaped text.
 
 ### 021 — `describe` shows ConfigMap keys but not values, and drops ServiceAccount Secret names
 **Why:** ConfigMap values can hold anything, including things that should have been Secrets. The failures here only need to know which keys exist (scenario 4 is a missing key), so the model gets key names and sizes. A ServiceAccount lists the names of its token and pull Secrets; the agent never looks at Secrets, so those go too.

@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category` and `ResourceRef` in `models.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming. `submit_diagnosis`, the `Diagnosis` model and the agent wiring below are the target design for Milestones 2–3. Until then `triage` and the offline eval gate still use the template's example tools.
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category` and `ResourceRef` in `models.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. `submit_diagnosis`, the `Diagnosis` model and the agent wiring below are the target design for Milestones 2–3. Until then `triage` and the offline eval gate still use the template's example tools.
 
 ## Overview
 
@@ -115,6 +115,16 @@ Pinned public images only (busybox, nginx, curlimages/curl), each container with
 
 `triage-seed` (`src/triage/scenarios.py`) is test-harness code, separate from the agent. It runs `kubectl` with your own context, so it can create and delete, and it refuses any context that isn't `kind-*`. `apply` runs `kubectl apply -f`, then polls `get pods`, `get events` or `logs` until the `wait_for` signal shows or the timeout passes. `delete` removes the scenario's namespace. `check` does both for each scenario and reports how long each failure took to show.
 
+### Recording and replay
+
+Unit tests, and later the offline agent runs and eval gate, never touch a cluster. They replay recordings instead (DECISIONS 022):
+
+- `triage-seed record` seeds a scenario, waits for its failure plus `--settle` seconds (default 15), waits for the failure signal again (a crash-looping container cycles between CrashLoopBackOff and crashing, so the first sighting may have moved on), then immediately reads through the agent's own kubeconfig, after the same identity check the MCP server makes. It reads everything the tools could ask about: the pod list, the events, current and previous logs for every container, every pod and its ReplicaSet, every object in the manifest, EndpointSlices for each Service, and `get configmaps` / `list pods` access reviews for each ServiceAccount.
+- `RecordingReader` (`src/triage/mcp_server/replay.py`) wraps the real reader and keeps each call's arguments and raw API result, or its error (for example no previous logs before a restart). The file is `tests/fixtures/scenarios/NN-name/recording.json`, with the scenario, namespace, time, Kubernetes version and agent identity.
+- `ReplayReader` serves a recording through the same `KubeReader` interface, so the real tools and trimming run on it unchanged. Logs are recorded at the 200-line maximum and a smaller `tail` returns the end of that text. As the API does, a log request with no container name gets the pod's only container, or a 400 asking for a name when it has several. A call the recording doesn't have fails as a 404 "not in this recording" error.
+- Saving refuses anything shaped like a JWT or a PEM private key, and a test checks every committed recording the same way.
+- `tests/test_recordings.py` replays each recording through the MCP tools and checks they show the signal named in that scenario's `expected.yaml`, and that every result stays under the size cap.
+
 ## Evals
 
 | Metric | How it's measured |
@@ -140,14 +150,14 @@ cluster-triage-agent/
     mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py; server.py = template example until M2
     agent/             loop, system prompt, tool-call cap
     models.py          Category, ResourceRef; Diagnosis schema in M2
-    scenarios.py       triage-seed: seed, wait for, delete scenarios
+    scenarios.py       triage-seed: seed, wait for, record, delete scenarios
     providers/         adapter: Claude + one comparison model
     evals/             eval runner
     cli.py             triage --namespace <ns>
   deploy/rbac/         ServiceAccount, read-only ClusterRole, binding
   scenarios/NN-name/   manifest.yaml + expected.yaml
   evals/               cases, baseline, results
-  tests/               offline unit tests and fixtures
+  tests/               offline unit tests; fixtures/kube (hand-written), fixtures/scenarios (recorded)
   .github/workflows/   lint, types, tests and eval gate on every push and PR
 ```
 

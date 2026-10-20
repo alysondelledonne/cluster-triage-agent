@@ -9,5 +9,5 @@ They include the noise real objects carry (`managedFields`, the
 `last-applied-configuration` annotation, `resourceVersion`, `uid`) so the tests
 prove trimming removes it.
 
-The Milestone 1 item "record each tool's real output per scenario" adds captured
-output next to these.
+Real recorded responses for each scenario live in `tests/fixtures/scenarios/`
+(`uv run triage-seed record`); these hand-written ones cover edge cases.

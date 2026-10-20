@@ -25,7 +25,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
 from . import trim
-from .kube import Kind, KubeClientReader, KubeError, KubeReader
+from .kube import Kind, KubeClientReader, KubeError, KubeReader, service_account_subject
 
 AGENT_USER = "system:serviceaccount:triage-system:triage-agent"
 
@@ -164,15 +164,12 @@ def build_server(namespace: str, reader: KubeReader) -> MCPServer:
             _check(group, API_WORD, "group")
         if subresource:
             _check(subresource, API_WORD, "subresource", max_len=63)
+        user, groups = service_account_subject(namespace, service_account)
         status = _run(
             lambda: reader.access_review(
                 namespace,
-                user=f"system:serviceaccount:{namespace}:{service_account}",
-                groups=[
-                    "system:serviceaccounts",
-                    f"system:serviceaccounts:{namespace}",
-                    "system:authenticated",
-                ],
+                user=user,
+                groups=groups,
                 verb=verb,
                 resource=resource,
                 group=group,

@@ -35,6 +35,18 @@ Kind = Literal[
 Obj = dict[str, Any]
 
 
+def service_account_subject(namespace: str, name: str) -> tuple[str, list[str]]:
+    """The user and groups the API server sees for a ServiceAccount, for access reviews.
+
+    Groups matter: a RoleBinding can grant access to all ServiceAccounts in a
+    namespace through `system:serviceaccounts:<namespace>`.
+    """
+    return (
+        f"system:serviceaccount:{namespace}:{name}",
+        ["system:serviceaccounts", f"system:serviceaccounts:{namespace}", "system:authenticated"],
+    )
+
+
 class KubeError(Exception):
     """An error from the API server, with its HTTP status and readable message."""
 
@@ -111,6 +123,11 @@ class KubeClientReader:
         """Ask the API server who these credentials are (a SelfSubjectReview)."""
         review = self._call(self.authn.create_self_subject_review, client.V1SelfSubjectReview())
         return str(review.status.user_info.username)
+
+    def server_version(self) -> str:
+        """The cluster's Kubernetes version, e.g. v1.34.0 (recorded with each scenario)."""
+        info = self._call(client.VersionApi(self.api).get_code)
+        return str(info.git_version)
 
     def list_pods(self, namespace: str) -> list[Obj]:
         pods = self._call(self.core.list_namespaced_pod, namespace)
