@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 023 | 2026-10-21 | `submit_diagnosis` is an agent-side tool validated against a strict `Diagnosis` schema | Accepted |
 | 022 | 2026-10-20 | Record raw API responses per scenario at the reader level and replay them offline | Accepted |
 | 021 | 2026-10-20 | `describe` shows ConfigMap keys but not values, and drops ServiceAccount Secret names | Accepted |
 | 020 | 2026-10-20 | Fix the namespace when the MCP server starts, and refuse to start under any identity but the agent's ServiceAccount | Accepted |
@@ -33,6 +34,10 @@ A running log of design and project decisions: what was decided, why, and what i
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 023 — `submit_diagnosis` is an agent-side tool validated against a strict `Diagnosis` schema
+**Why:** Submitting a diagnosis doesn't read the cluster, so it doesn't belong on the MCP server, which stays only about looking at Kubernetes. A Pydantic model gives one definition for the tool schema the model sees and the validation of what it sends. Unknown fields are rejected and every error names its field, so the model can correct a bad call. `proposed_fix` may be null only for Unknown, so a confident category always comes with a fix. Evidence must name one of the five MCP tools, which is what lets step 3 check each quote against that tool's real output.
+**Consequence:** The schema is inlined (no `$ref`) for portability across model APIs. The limits (1–8 evidence items, quotes up to 500 characters, YAML up to 5,000) are first guesses, to revisit after the hand runs at the end of Milestone 2. The loop that offers this tool and retries rejected submissions is step 2.
 
 ### 022 — Record raw API responses per scenario at the reader level and replay them offline
 **Why:** Tests and CI must not need a cluster, but they should run on what a real cluster says. Recording the raw responses under the `KubeReader` interface, rather than the tools' text, keeps the full trail of what the API returned and keeps recordings valid when trimming changes: the real tools and `trim.py` run over them on every test. The other option, saving each tool's final text, would go stale with every trimming change. Recording is an action of `triage-seed` because it already seeds, waits and deletes; the reads in between go through the agent's kubeconfig, never the admin context.

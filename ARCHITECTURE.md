@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category` and `ResourceRef` in `models.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. `submit_diagnosis`, the `Diagnosis` model and the agent wiring below are the target design for Milestones 2–3. Until then `triage` and the offline eval gate still use the template's example tools.
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. The agent wiring below (the loop requiring `submit_diagnosis`, the prompt, evidence checks, the CLI) is the target design for Milestones 2–3. Until then `triage` and the offline eval gate still use the template's example tools.
 
 ## Overview
 
@@ -69,16 +69,22 @@ How the server is put together:
 
 ## Diagnosis output
 
-A Pydantic model, enforced through the `submit_diagnosis` tool schema:
+`Diagnosis` in `src/triage/models.py`. The agent returns it by calling `submit_diagnosis`, a tool defined on the agent side (`src/triage/agent/submit.py`), not on the MCP server, because it validates an answer rather than reading the cluster (DECISIONS 023).
 
-| Field | Contents |
-| --- | --- |
-| `category` | One of CrashLoop, ImagePull, OOMKilled, ConfigError, ProbeFailure, RBACDenied, NetworkPolicy, Unknown |
-| `affected_resource` | Kind and name |
-| `root_cause` | One or two plain-English sentences |
-| `evidence` | List of {tool, quoted line}; each quote is checked against the actual tool output |
-| `proposed_fix` | Short explanation plus a YAML patch |
-| `confidence` | 0 to 1 |
+| Field | Contents | Limits |
+| --- | --- | --- |
+| `category` | One of CrashLoop, ImagePull, OOMKilled, ConfigError, ProbeFailure, RBACDenied, NetworkPolicy, Unknown | |
+| `affected_resource` | `{kind, name}` | |
+| `root_cause` | One or two plain-English sentences | 10–600 characters |
+| `evidence` | List of `{tool, quote}`; `tool` is one of the five MCP tools; each quote is checked against the real tool output (M2, step 3) | 1–8 items, quotes 3–500 characters |
+| `proposed_fix` | `{explanation, yaml}`: YAML a person could `kubectl apply` | required unless `category` is Unknown; YAML up to 5,000 characters |
+| `confidence` | 0 to 1 | |
+
+How a submission is handled:
+
+- The tool's input schema is generated from the model, with every nested definition inlined (no `$ref`), since some model APIs reject references in tool schemas. Field descriptions in the model are the instructions the model reads.
+- Unknown fields are rejected, so a misspelled field comes back as an error instead of being dropped.
+- `parse_submission` returns a `Diagnosis` or raises `SubmissionError` with one line per problem (`- confidence: Input should be less than or equal to 1`). In step 2 the loop sends that text back to the model to correct, a limited number of times.
 
 ## Failure scenarios
 
@@ -148,8 +154,8 @@ cluster-triage-agent/
   DECISIONS.md         decision log
   src/triage/
     mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py; server.py = template example until M2
-    agent/             loop, system prompt, tool-call cap
-    models.py          Category, ResourceRef; Diagnosis schema in M2
+    agent/             loop, submit.py (submit_diagnosis), system prompt, tool-call cap
+    models.py          Category, ResourceRef, Diagnosis (Pydantic)
     scenarios.py       triage-seed: seed, wait for, record, delete scenarios
     providers/         adapter: Claude + one comparison model
     evals/             eval runner
