@@ -1,5 +1,7 @@
-# The app exits with an error on every start, so Kubernetes restarts it with
-# growing back-off delays until the container sits in CrashLoopBackOff.
+# The app needs LISTEN_PORT and the Deployment doesn't set it, so it exits with
+# an error on every start and Kubernetes restarts it with growing back-off delays
+# until the container sits in CrashLoopBackOff. Setting LISTEN_PORT fixes it: the
+# app then keeps running (DECISIONS.md 031).
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -29,8 +31,12 @@ spec:
           args:
             - |
               echo "starting api"
-              echo "fatal: required setting LISTEN_PORT is missing" >&2
-              exit 1
+              if [ -z "$LISTEN_PORT" ]; then
+                echo "fatal: required setting LISTEN_PORT is missing" >&2
+                exit 1
+              fi
+              echo "listening on port $LISTEN_PORT"
+              exec sleep 2147483647
           resources:
             requests: {cpu: 10m, memory: 16Mi}
             limits: {cpu: 100m, memory: 32Mi}

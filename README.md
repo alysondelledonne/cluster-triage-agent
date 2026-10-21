@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 1 done (2026-10-20): six seeded scenarios, read-only RBAC, the MCP server's five read tools with output trimming, and recorded API responses replayed offline; scenario 6 was diagnosed by chatting through the server in the Claude desktop app. Milestone 2 (the agent) in progress: the `Diagnosis` model and the `submit_diagnosis` tool are built, and the loop now requires a submission and caps tool calls at 12, and a submission is accepted only when every evidence quote is found in the run's tool output and the fix stays in the namespace; the system prompt is written, and `triage` diagnoses a live namespace or a recording and prints a report. Next is the hand runs: Claude on all six scenarios.
+**Status:** Milestone 2 done (2026-10-21): `triage` diagnosed all six scenarios correctly with Claude Haiku, for about $0.002 a run (results below). Milestone 3 (evals, CI and README) is next.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -92,7 +92,7 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 
 **Done when:** all six scenarios seed reliably, every tool has tests, and a scenario can be diagnosed by hand through the MCP server. ✅
 
-### Milestone 2: The agent
+### Milestone 2: The agent — done 2026-10-21
 
 - [x] `Diagnosis` Pydantic model and the `submit_diagnosis` tool
 - [x] Loop calling tools through the MCP client, with the tool-call cap and a required submission
@@ -100,9 +100,22 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 - [x] Every run logged to JSON lines: tool calls, tokens, latency, cost
 - [x] CLI: `triage --namespace demo-crashloop` prints a readable report
 - [x] Evidence quotes checked against the real tool output
-- [ ] At least 4 of 6 scenarios right by hand; misses noted
+- [x] At least 4 of 6 scenarios right by hand; misses noted
 
-**Done when:** one command diagnoses any scenario and prints root cause, evidence and a proposed fix.
+**Done when:** one command diagnoses any scenario and prints root cause, evidence and a proposed fix. ✅
+
+Hand runs, 2026-10-21, `claude-haiku-5-5`, prompt version 1, one run each (scenario 1 live, the rest replayed from recordings):
+
+| Scenario | Diagnosis | Right? | Confidence | Tool calls | Cost |
+| --- | --- | --- | --- | --- | --- |
+| 01-crashloop | CrashLoop, Deployment/api | ✅ | 0.80 | 4 | $0.0020 |
+| 02-imagepull | ImagePull, Deployment/web | ✅ | 0.95 | 3 | $0.0020 |
+| 03-oomkilled | OOMKilled, Deployment/worker | ✅ | 0.90 | 3 | $0.0018 |
+| 04-missing-config | ConfigError, Deployment/billing | ✅ | 0.93 | 4 | $0.0019 |
+| 05-failing-probe | ProbeFailure, Deployment/frontend | ✅ | 0.90 | 4 | $0.0020 |
+| 06-rbac-denied | RBACDenied, ServiceAccount/reporter | ✅ | 0.93 | 5 | $0.0027 |
+
+No misses. One run each is not a measurement; Milestone 3 runs each scenario 3 times per model. What the runs did show is in DECISIONS 030: the scenario 1 and 3 fixes can't work as the scenarios are written, and partial-object fixes need a safer way to apply than plain `kubectl apply`.
 
 ### Milestone 3: Evals, CI and README — ship and apply
 

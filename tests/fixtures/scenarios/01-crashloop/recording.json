@@ -1,7 +1,7 @@
 {
  "scenario": "01-crashloop",
  "namespace": "triage-01-crashloop",
- "recorded_at": "2026-10-20T21:46:11+00:00",
+ "recorded_at": "2026-10-21T23:10:38+00:00",
  "server_version": "v1.37.0",
  "agent_user": "system:serviceaccount:triage-system:triage-agent",
  "calls": [
@@ -19,12 +19,12 @@
    "result": [
     {
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:41:53+00:00",
-      "generateName": "api-799cf64d4f-",
+      "creationTimestamp": "2026-10-21T23:10:20+00:00",
+      "generateName": "api-68bb89b75d-",
       "generation": 1,
       "labels": {
        "app": "api",
-       "pod-template-hash": "799cf64d4f"
+       "pod-template-hash": "68bb89b75d"
       },
       "managedFields": [
        {
@@ -40,7 +40,7 @@
           },
           "f:ownerReferences": {
            ".": {},
-           "k:{\"uid\":\"3dc70950-8738-4ee3-8abb-0b5b92937411\"}": {}
+           "k:{\"uid\":\"febd8c8c-d573-4440-83a3-c4059ad2540e\"}": {}
           }
          },
          "f:spec": {
@@ -79,7 +79,7 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:41:53+00:00"
+        "time": "2026-10-21T23:10:20+00:00"
        },
        {
         "apiVersion": "v1",
@@ -140,7 +140,7 @@
           "f:podIP": {},
           "f:podIPs": {
            ".": {},
-           "k:{\"ip\":\"10.244.0.18\"}": {
+           "k:{\"ip\":\"10.244.0.27\"}": {
             ".": {},
             "f:ip": {}
            }
@@ -163,10 +163,10 @@
         "manager": "kubelet",
         "operation": "Update",
         "subresource": "status",
-        "time": "2026-10-20T21:46:11+00:00"
+        "time": "2026-10-21T23:10:34+00:00"
        }
       ],
-      "name": "api-799cf64d4f-qfsjp",
+      "name": "api-68bb89b75d-gc6w4",
       "namespace": "triage-01-crashloop",
       "ownerReferences": [
        {
@@ -174,18 +174,18 @@
         "blockOwnerDeletion": true,
         "controller": true,
         "kind": "ReplicaSet",
-        "name": "api-799cf64d4f",
-        "uid": "3dc70950-8738-4ee3-8abb-0b5b92937411"
+        "name": "api-68bb89b75d",
+        "uid": "febd8c8c-d573-4440-83a3-c4059ad2540e"
        }
       ],
-      "resourceVersion": "11971",
-      "uid": "d39968f5-39e1-437b-8c27-1a36d9e7c930"
+      "resourceVersion": "68006",
+      "uid": "447029bb-7dca-4b06-a20d-b7b35aedfe2d"
      },
      "spec": {
       "containers": [
        {
         "args": [
-         "echo \"starting api\"\necho \"fatal: required setting LISTEN_PORT is missing\" >&2\nexit 1\n"
+         "echo \"starting api\"\nif [ -z \"$LISTEN_PORT\" ]; then\n  echo \"fatal: required setting LISTEN_PORT is missing\" >&2\n  exit 1\nfi\necho \"listening on port $LISTEN_PORT\"\nexec sleep 2147483647\n"
         ],
         "command": [
          "sh",
@@ -209,7 +209,7 @@
         "volumeMounts": [
          {
           "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-          "name": "kube-api-access-dxznp",
+          "name": "kube-api-access-fvdvd",
           "readOnly": true
          }
         ]
@@ -242,7 +242,7 @@
       ],
       "volumes": [
        {
-        "name": "kube-api-access-dxznp",
+        "name": "kube-api-access-fvdvd",
         "projected": {
          "defaultMode": 420,
          "sources": [
@@ -288,19 +288,19 @@
       },
       "conditions": [
        {
-        "lastTransitionTime": "2026-10-20T21:41:54+00:00",
+        "lastTransitionTime": "2026-10-21T23:10:21+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "PodReadyToStartContainers"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:41:53+00:00",
+        "lastTransitionTime": "2026-10-21T23:10:20+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "Initialized"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:44:54+00:00",
+        "lastTransitionTime": "2026-10-21T23:10:34+00:00",
         "message": "containers with unready status: [api]",
         "observedGeneration": 1,
         "reason": "ContainersNotReady",
@@ -308,7 +308,7 @@
         "type": "Ready"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:44:54+00:00",
+        "lastTransitionTime": "2026-10-21T23:10:34+00:00",
         "message": "containers with unready status: [api]",
         "observedGeneration": 1,
         "reason": "ContainersNotReady",
@@ -316,7 +316,7 @@
         "type": "ContainersReady"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:41:53+00:00",
+        "lastTransitionTime": "2026-10-21T23:10:20+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "PodScheduled"
@@ -328,16 +328,16 @@
          "cpu": "10m",
          "memory": "16Mi"
         },
-        "containerID": "containerd://dd3c93d27550e54204e4a58d78adcb99e8a856f5e2863237b0f8261c730dc9fe",
+        "containerID": "containerd://db5633bb7f6e5df9c371c9bf4f0999573f364e0a24fdff2ab020fbc164124e42",
         "image": "docker.io/library/busybox:1.36.1",
         "imageID": "docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
         "lastState": {
          "terminated": {
-          "containerID": "containerd://dd3c93d27550e54204e4a58d78adcb99e8a856f5e2863237b0f8261c730dc9fe",
+          "containerID": "containerd://44b3b1e1963d5bfb12ba4d4a9a1540a9eff8f8c8de6509b9c0f5996273d19709",
           "exitCode": 1,
-          "finishedAt": "2026-10-20T21:44:54+00:00",
+          "finishedAt": "2026-10-21T23:10:22+00:00",
           "reason": "Error",
-          "startedAt": "2026-10-20T21:44:54+00:00"
+          "startedAt": "2026-10-21T23:10:22+00:00"
          }
         },
         "name": "api",
@@ -352,12 +352,15 @@
           "memory": "16Mi"
          }
         },
-        "restartCount": 5,
+        "restartCount": 2,
         "started": false,
         "state": {
-         "waiting": {
-          "message": "back-off 2m40s restarting failed container=api pod=api-799cf64d4f-qfsjp_triage-01-crashloop(d39968f5-39e1-437b-8c27-1a36d9e7c930)",
-          "reason": "CrashLoopBackOff"
+         "terminated": {
+          "containerID": "containerd://db5633bb7f6e5df9c371c9bf4f0999573f364e0a24fdff2ab020fbc164124e42",
+          "exitCode": 1,
+          "finishedAt": "2026-10-21T23:10:34+00:00",
+          "reason": "Error",
+          "startedAt": "2026-10-21T23:10:34+00:00"
          }
         },
         "user": {
@@ -373,7 +376,7 @@
         "volumeMounts": [
          {
           "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-          "name": "kube-api-access-dxznp",
+          "name": "kube-api-access-fvdvd",
           "readOnly": true,
           "recursiveReadOnly": "Disabled"
          }
@@ -388,10 +391,10 @@
       ],
       "observedGeneration": 1,
       "phase": "Running",
-      "podIP": "10.244.0.18",
+      "podIP": "10.244.0.27",
       "podIPs": [
        {
-        "ip": "10.244.0.18"
+        "ip": "10.244.0.27"
        }
       ],
       "qosClass": "Burstable",
@@ -404,7 +407,7 @@
         "memory": "16Mi"
        }
       },
-      "startTime": "2026-10-20T21:41:53+00:00"
+      "startTime": "2026-10-21T23:10:20+00:00"
      }
     }
    ],
@@ -418,19 +421,19 @@
    "result": [
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:41:53+00:00",
+     "firstTimestamp": "2026-10-21T23:10:20+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "kind": "Pod",
-      "name": "api-799cf64d4f-qfsjp",
+      "name": "api-68bb89b75d-gc6w4",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11535",
-      "uid": "d39968f5-39e1-437b-8c27-1a36d9e7c930"
+      "resourceVersion": "67948",
+      "uid": "447029bb-7dca-4b06-a20d-b7b35aedfe2d"
      },
-     "lastTimestamp": "2026-10-20T21:41:53+00:00",
-     "message": "Successfully assigned triage-01-crashloop/api-799cf64d4f-qfsjp to triage-control-plane",
+     "lastTimestamp": "2026-10-21T23:10:20+00:00",
+     "message": "Successfully assigned triage-01-crashloop/api-68bb89b75d-gc6w4 to triage-control-plane",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:41:53+00:00",
+      "creationTimestamp": "2026-10-21T23:10:20+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -450,13 +453,13 @@
         },
         "manager": "kube-scheduler",
         "operation": "Update",
-        "time": "2026-10-20T21:41:53+00:00"
+        "time": "2026-10-21T23:10:20+00:00"
        }
       ],
-      "name": "api-799cf64d4f-qfsjp.18e05ad2f48d8200",
+      "name": "api-68bb89b75d-gc6w4.18e0ae3b155adb65",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11541",
-      "uid": "0b11fa95-27f3-4a9f-94ac-991e4587fa44"
+      "resourceVersion": "67954",
+      "uid": "3acf7fa9-78bc-461e-acb5-589ad23d206d"
      },
      "reason": "Scheduled",
      "reportingComponent": "default-scheduler",
@@ -467,21 +470,21 @@
      "type": "Normal"
     },
     {
-     "count": 6,
-     "firstTimestamp": "2026-10-20T21:41:54+00:00",
+     "count": 3,
+     "firstTimestamp": "2026-10-21T23:10:21+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{api}",
       "kind": "Pod",
-      "name": "api-799cf64d4f-qfsjp",
+      "name": "api-68bb89b75d-gc6w4",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11539",
-      "uid": "d39968f5-39e1-437b-8c27-1a36d9e7c930"
+      "resourceVersion": "67952",
+      "uid": "447029bb-7dca-4b06-a20d-b7b35aedfe2d"
      },
-     "lastTimestamp": "2026-10-20T21:44:54+00:00",
+     "lastTimestamp": "2026-10-21T23:10:33+00:00",
      "message": "Container image \"busybox:1.36.1\" already present on machine and can be accessed by the pod",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:41:54+00:00",
+      "creationTimestamp": "2026-10-21T23:10:21+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -503,13 +506,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:44:54+00:00"
+        "time": "2026-10-21T23:10:34+00:00"
        }
       ],
-      "name": "api-799cf64d4f-qfsjp.18e05ad31e68ab0f",
+      "name": "api-68bb89b75d-gc6w4.18e0ae3b34f50885",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11851",
-      "uid": "114a9f49-03ec-4d15-870d-e7dc38087152"
+      "resourceVersion": "67999",
+      "uid": "ad518784-753e-4407-a01b-d5e4d262e862"
      },
      "reason": "Pulled",
      "reportingComponent": "kubelet",
@@ -521,21 +524,21 @@
      "type": "Normal"
     },
     {
-     "count": 6,
-     "firstTimestamp": "2026-10-20T21:41:54+00:00",
+     "count": 3,
+     "firstTimestamp": "2026-10-21T23:10:21+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{api}",
       "kind": "Pod",
-      "name": "api-799cf64d4f-qfsjp",
+      "name": "api-68bb89b75d-gc6w4",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11539",
-      "uid": "d39968f5-39e1-437b-8c27-1a36d9e7c930"
+      "resourceVersion": "67952",
+      "uid": "447029bb-7dca-4b06-a20d-b7b35aedfe2d"
      },
-     "lastTimestamp": "2026-10-20T21:44:54+00:00",
+     "lastTimestamp": "2026-10-21T23:10:34+00:00",
      "message": "Container created",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:41:54+00:00",
+      "creationTimestamp": "2026-10-21T23:10:21+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -557,13 +560,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:44:54+00:00"
+        "time": "2026-10-21T23:10:34+00:00"
        }
       ],
-      "name": "api-799cf64d4f-qfsjp.18e05ad31f539a73",
+      "name": "api-68bb89b75d-gc6w4.18e0ae3b35b9e143",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11852",
-      "uid": "0e699e03-c68b-4d01-a8de-9da7fba9bbb7"
+      "resourceVersion": "68000",
+      "uid": "d3aec3aa-e855-4e3d-998a-89baed2e46fb"
      },
      "reason": "Created",
      "reportingComponent": "kubelet",
@@ -575,21 +578,21 @@
      "type": "Normal"
     },
     {
-     "count": 6,
-     "firstTimestamp": "2026-10-20T21:41:54+00:00",
+     "count": 3,
+     "firstTimestamp": "2026-10-21T23:10:21+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{api}",
       "kind": "Pod",
-      "name": "api-799cf64d4f-qfsjp",
+      "name": "api-68bb89b75d-gc6w4",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11539",
-      "uid": "d39968f5-39e1-437b-8c27-1a36d9e7c930"
+      "resourceVersion": "67952",
+      "uid": "447029bb-7dca-4b06-a20d-b7b35aedfe2d"
      },
-     "lastTimestamp": "2026-10-20T21:44:54+00:00",
+     "lastTimestamp": "2026-10-21T23:10:34+00:00",
      "message": "Container started",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:41:54+00:00",
+      "creationTimestamp": "2026-10-21T23:10:21+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -611,13 +614,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:44:54+00:00"
+        "time": "2026-10-21T23:10:34+00:00"
        }
       ],
-      "name": "api-799cf64d4f-qfsjp.18e05ad32a4a2539",
+      "name": "api-68bb89b75d-gc6w4.18e0ae3b40ee9f5f",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11853",
-      "uid": "f25339d8-ac6c-4e1d-87ea-7b823395d9a4"
+      "resourceVersion": "68001",
+      "uid": "fb041057-f021-4f3f-9850-380c20bafdf0"
      },
      "reason": "Started",
      "reportingComponent": "kubelet",
@@ -629,21 +632,21 @@
      "type": "Normal"
     },
     {
-     "count": 7,
-     "firstTimestamp": "2026-10-20T21:41:56+00:00",
+     "count": 3,
+     "firstTimestamp": "2026-10-21T23:10:23+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{api}",
       "kind": "Pod",
-      "name": "api-799cf64d4f-qfsjp",
+      "name": "api-68bb89b75d-gc6w4",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11539",
-      "uid": "d39968f5-39e1-437b-8c27-1a36d9e7c930"
+      "resourceVersion": "67952",
+      "uid": "447029bb-7dca-4b06-a20d-b7b35aedfe2d"
      },
-     "lastTimestamp": "2026-10-20T21:46:11+00:00",
-     "message": "Back-off restarting failed container api in pod api-799cf64d4f-qfsjp_triage-01-crashloop(d39968f5-39e1-437b-8c27-1a36d9e7c930)",
+     "lastTimestamp": "2026-10-21T23:10:34+00:00",
+     "message": "Back-off restarting failed container api in pod api-68bb89b75d-gc6w4_triage-01-crashloop(447029bb-7dca-4b06-a20d-b7b35aedfe2d)",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:41:56+00:00",
+      "creationTimestamp": "2026-10-21T23:10:23+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -665,13 +668,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:46:11+00:00"
+        "time": "2026-10-21T23:10:34+00:00"
        }
       ],
-      "name": "api-799cf64d4f-qfsjp.18e05ad384df4c67",
+      "name": "api-68bb89b75d-gc6w4.18e0ae3bb4c69d4c",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11970",
-      "uid": "7654a330-ef8c-47a2-aebb-4b16937ab751"
+      "resourceVersion": "68005",
+      "uid": "17ea5e51-bd74-4ac2-a32b-502aa4ccb2de"
      },
      "reason": "BackOff",
      "reportingComponent": "kubelet",
@@ -684,19 +687,19 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:41:53+00:00",
+     "firstTimestamp": "2026-10-21T23:10:20+00:00",
      "involvedObject": {
       "apiVersion": "apps/v1",
       "kind": "ReplicaSet",
-      "name": "api-799cf64d4f",
+      "name": "api-68bb89b75d",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11532",
-      "uid": "3dc70950-8738-4ee3-8abb-0b5b92937411"
+      "resourceVersion": "67945",
+      "uid": "febd8c8c-d573-4440-83a3-c4059ad2540e"
      },
-     "lastTimestamp": "2026-10-20T21:41:53+00:00",
-     "message": "Created pod: api-799cf64d4f-qfsjp",
+     "lastTimestamp": "2026-10-21T23:10:20+00:00",
+     "message": "Created pod: api-68bb89b75d-gc6w4",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:41:53+00:00",
+      "creationTimestamp": "2026-10-21T23:10:20+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -716,13 +719,13 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:41:53+00:00"
+        "time": "2026-10-21T23:10:20+00:00"
        }
       ],
-      "name": "api-799cf64d4f.18e05ad2f4317ff7",
+      "name": "api-68bb89b75d.18e0ae3b14e97067",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11537",
-      "uid": "88929cff-1aa5-4084-9e77-c1b0d3b48618"
+      "resourceVersion": "67949",
+      "uid": "aaa4eb61-567f-46b1-9005-5359301f35d0"
      },
      "reason": "SuccessfulCreate",
      "reportingComponent": "replicaset-controller",
@@ -734,19 +737,19 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:41:53+00:00",
+     "firstTimestamp": "2026-10-21T23:10:20+00:00",
      "involvedObject": {
       "apiVersion": "apps/v1",
       "kind": "Deployment",
       "name": "api",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11531",
-      "uid": "e058ef12-452e-41e3-9422-c0194036cfa8"
+      "resourceVersion": "67944",
+      "uid": "9919fdb0-30f1-479e-9a8d-673bb68f2c9c"
      },
-     "lastTimestamp": "2026-10-20T21:41:53+00:00",
-     "message": "Scaled up replica set api-799cf64d4f from 0 to 1",
+     "lastTimestamp": "2026-10-21T23:10:20+00:00",
+     "message": "Scaled up replica set api-68bb89b75d from 0 to 1",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:41:53+00:00",
+      "creationTimestamp": "2026-10-21T23:10:20+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -766,13 +769,13 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:41:53+00:00"
+        "time": "2026-10-21T23:10:20+00:00"
        }
       ],
-      "name": "api.18e05ad2f37c2e7c",
+      "name": "api.18e0ae3b146bd3d3",
       "namespace": "triage-01-crashloop",
-      "resourceVersion": "11534",
-      "uid": "61c9eb21-b8bd-4393-883d-019f51e068d3"
+      "resourceVersion": "67947",
+      "uid": "e963b88b-6569-49b1-beb6-a3908fc67605"
      },
      "reason": "ScalingReplicaSet",
      "reportingComponent": "deployment-controller",
@@ -790,18 +793,18 @@
    "args": {
     "kind": "pod",
     "namespace": "triage-01-crashloop",
-    "name": "api-799cf64d4f-qfsjp"
+    "name": "api-68bb89b75d-gc6w4"
    },
    "result": {
     "apiVersion": "v1",
     "kind": "Pod",
     "metadata": {
-     "creationTimestamp": "2026-10-20T21:41:53+00:00",
-     "generateName": "api-799cf64d4f-",
+     "creationTimestamp": "2026-10-21T23:10:20+00:00",
+     "generateName": "api-68bb89b75d-",
      "generation": 1,
      "labels": {
       "app": "api",
-      "pod-template-hash": "799cf64d4f"
+      "pod-template-hash": "68bb89b75d"
      },
      "managedFields": [
       {
@@ -817,7 +820,7 @@
          },
          "f:ownerReferences": {
           ".": {},
-          "k:{\"uid\":\"3dc70950-8738-4ee3-8abb-0b5b92937411\"}": {}
+          "k:{\"uid\":\"febd8c8c-d573-4440-83a3-c4059ad2540e\"}": {}
          }
         },
         "f:spec": {
@@ -856,7 +859,7 @@
        },
        "manager": "kube-controller-manager",
        "operation": "Update",
-       "time": "2026-10-20T21:41:53+00:00"
+       "time": "2026-10-21T23:10:20+00:00"
       },
       {
        "apiVersion": "v1",
@@ -917,7 +920,7 @@
          "f:podIP": {},
          "f:podIPs": {
           ".": {},
-          "k:{\"ip\":\"10.244.0.18\"}": {
+          "k:{\"ip\":\"10.244.0.27\"}": {
            ".": {},
            "f:ip": {}
           }
@@ -940,10 +943,10 @@
        "manager": "kubelet",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:46:11+00:00"
+       "time": "2026-10-21T23:10:34+00:00"
       }
      ],
-     "name": "api-799cf64d4f-qfsjp",
+     "name": "api-68bb89b75d-gc6w4",
      "namespace": "triage-01-crashloop",
      "ownerReferences": [
       {
@@ -951,18 +954,18 @@
        "blockOwnerDeletion": true,
        "controller": true,
        "kind": "ReplicaSet",
-       "name": "api-799cf64d4f",
-       "uid": "3dc70950-8738-4ee3-8abb-0b5b92937411"
+       "name": "api-68bb89b75d",
+       "uid": "febd8c8c-d573-4440-83a3-c4059ad2540e"
       }
      ],
-     "resourceVersion": "11971",
-     "uid": "d39968f5-39e1-437b-8c27-1a36d9e7c930"
+     "resourceVersion": "68006",
+     "uid": "447029bb-7dca-4b06-a20d-b7b35aedfe2d"
     },
     "spec": {
      "containers": [
       {
        "args": [
-        "echo \"starting api\"\necho \"fatal: required setting LISTEN_PORT is missing\" >&2\nexit 1\n"
+        "echo \"starting api\"\nif [ -z \"$LISTEN_PORT\" ]; then\n  echo \"fatal: required setting LISTEN_PORT is missing\" >&2\n  exit 1\nfi\necho \"listening on port $LISTEN_PORT\"\nexec sleep 2147483647\n"
        ],
        "command": [
         "sh",
@@ -986,7 +989,7 @@
        "volumeMounts": [
         {
          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-         "name": "kube-api-access-dxznp",
+         "name": "kube-api-access-fvdvd",
          "readOnly": true
         }
        ]
@@ -1019,7 +1022,7 @@
      ],
      "volumes": [
       {
-       "name": "kube-api-access-dxznp",
+       "name": "kube-api-access-fvdvd",
        "projected": {
         "defaultMode": 420,
         "sources": [
@@ -1065,19 +1068,19 @@
      },
      "conditions": [
       {
-       "lastTransitionTime": "2026-10-20T21:41:54+00:00",
+       "lastTransitionTime": "2026-10-21T23:10:21+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "PodReadyToStartContainers"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:41:53+00:00",
+       "lastTransitionTime": "2026-10-21T23:10:20+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "Initialized"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:44:54+00:00",
+       "lastTransitionTime": "2026-10-21T23:10:34+00:00",
        "message": "containers with unready status: [api]",
        "observedGeneration": 1,
        "reason": "ContainersNotReady",
@@ -1085,7 +1088,7 @@
        "type": "Ready"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:44:54+00:00",
+       "lastTransitionTime": "2026-10-21T23:10:34+00:00",
        "message": "containers with unready status: [api]",
        "observedGeneration": 1,
        "reason": "ContainersNotReady",
@@ -1093,7 +1096,7 @@
        "type": "ContainersReady"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:41:53+00:00",
+       "lastTransitionTime": "2026-10-21T23:10:20+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "PodScheduled"
@@ -1105,16 +1108,16 @@
         "cpu": "10m",
         "memory": "16Mi"
        },
-       "containerID": "containerd://dd3c93d27550e54204e4a58d78adcb99e8a856f5e2863237b0f8261c730dc9fe",
+       "containerID": "containerd://db5633bb7f6e5df9c371c9bf4f0999573f364e0a24fdff2ab020fbc164124e42",
        "image": "docker.io/library/busybox:1.36.1",
        "imageID": "docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
        "lastState": {
         "terminated": {
-         "containerID": "containerd://dd3c93d27550e54204e4a58d78adcb99e8a856f5e2863237b0f8261c730dc9fe",
+         "containerID": "containerd://44b3b1e1963d5bfb12ba4d4a9a1540a9eff8f8c8de6509b9c0f5996273d19709",
          "exitCode": 1,
-         "finishedAt": "2026-10-20T21:44:54+00:00",
+         "finishedAt": "2026-10-21T23:10:22+00:00",
          "reason": "Error",
-         "startedAt": "2026-10-20T21:44:54+00:00"
+         "startedAt": "2026-10-21T23:10:22+00:00"
         }
        },
        "name": "api",
@@ -1129,12 +1132,15 @@
          "memory": "16Mi"
         }
        },
-       "restartCount": 5,
+       "restartCount": 2,
        "started": false,
        "state": {
-        "waiting": {
-         "message": "back-off 2m40s restarting failed container=api pod=api-799cf64d4f-qfsjp_triage-01-crashloop(d39968f5-39e1-437b-8c27-1a36d9e7c930)",
-         "reason": "CrashLoopBackOff"
+        "terminated": {
+         "containerID": "containerd://db5633bb7f6e5df9c371c9bf4f0999573f364e0a24fdff2ab020fbc164124e42",
+         "exitCode": 1,
+         "finishedAt": "2026-10-21T23:10:34+00:00",
+         "reason": "Error",
+         "startedAt": "2026-10-21T23:10:34+00:00"
         }
        },
        "user": {
@@ -1150,7 +1156,7 @@
        "volumeMounts": [
         {
          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-         "name": "kube-api-access-dxznp",
+         "name": "kube-api-access-fvdvd",
          "readOnly": true,
          "recursiveReadOnly": "Disabled"
         }
@@ -1165,10 +1171,10 @@
      ],
      "observedGeneration": 1,
      "phase": "Running",
-     "podIP": "10.244.0.18",
+     "podIP": "10.244.0.27",
      "podIPs": [
       {
-       "ip": "10.244.0.18"
+       "ip": "10.244.0.27"
       }
      ],
      "qosClass": "Burstable",
@@ -1181,7 +1187,7 @@
        "memory": "16Mi"
       }
      },
-     "startTime": "2026-10-20T21:41:53+00:00"
+     "startTime": "2026-10-21T23:10:20+00:00"
     }
    },
    "error": null
@@ -1191,7 +1197,7 @@
    "args": {
     "kind": "replicaset",
     "namespace": "triage-01-crashloop",
-    "name": "api-799cf64d4f"
+    "name": "api-68bb89b75d"
    },
    "result": {
     "apiVersion": "apps/v1",
@@ -1202,11 +1208,11 @@
       "deployment.kubernetes.io/max-replicas": "2",
       "deployment.kubernetes.io/revision": "1"
      },
-     "creationTimestamp": "2026-10-20T21:41:53+00:00",
+     "creationTimestamp": "2026-10-21T23:10:20+00:00",
      "generation": 1,
      "labels": {
       "app": "api",
-      "pod-template-hash": "799cf64d4f"
+      "pod-template-hash": "68bb89b75d"
      },
      "managedFields": [
       {
@@ -1227,7 +1233,7 @@
          },
          "f:ownerReferences": {
           ".": {},
-          "k:{\"uid\":\"e058ef12-452e-41e3-9422-c0194036cfa8\"}": {}
+          "k:{\"uid\":\"9919fdb0-30f1-479e-9a8d-673bb68f2c9c\"}": {}
          }
         },
         "f:spec": {
@@ -1278,7 +1284,7 @@
        },
        "manager": "kube-controller-manager",
        "operation": "Update",
-       "time": "2026-10-20T21:41:53+00:00"
+       "time": "2026-10-21T23:10:20+00:00"
       },
       {
        "apiVersion": "apps/v1",
@@ -1294,10 +1300,10 @@
        "manager": "kube-controller-manager",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:44:54+00:00"
+       "time": "2026-10-21T23:10:34+00:00"
       }
      ],
-     "name": "api-799cf64d4f",
+     "name": "api-68bb89b75d",
      "namespace": "triage-01-crashloop",
      "ownerReferences": [
       {
@@ -1306,32 +1312,32 @@
        "controller": true,
        "kind": "Deployment",
        "name": "api",
-       "uid": "e058ef12-452e-41e3-9422-c0194036cfa8"
+       "uid": "9919fdb0-30f1-479e-9a8d-673bb68f2c9c"
       }
      ],
-     "resourceVersion": "11859",
-     "uid": "3dc70950-8738-4ee3-8abb-0b5b92937411"
+     "resourceVersion": "68007",
+     "uid": "febd8c8c-d573-4440-83a3-c4059ad2540e"
     },
     "spec": {
      "replicas": 1,
      "selector": {
       "matchLabels": {
        "app": "api",
-       "pod-template-hash": "799cf64d4f"
+       "pod-template-hash": "68bb89b75d"
       }
      },
      "template": {
       "metadata": {
        "labels": {
         "app": "api",
-        "pod-template-hash": "799cf64d4f"
+        "pod-template-hash": "68bb89b75d"
        }
       },
       "spec": {
        "containers": [
         {
          "args": [
-          "echo \"starting api\"\necho \"fatal: required setting LISTEN_PORT is missing\" >&2\nexit 1\n"
+          "echo \"starting api\"\nif [ -z \"$LISTEN_PORT\" ]; then\n  echo \"fatal: required setting LISTEN_PORT is missing\" >&2\n  exit 1\nfi\necho \"listening on port $LISTEN_PORT\"\nexec sleep 2147483647\n"
          ],
          "command": [
           "sh",
@@ -1375,7 +1381,7 @@
    "method": "read_log",
    "args": {
     "namespace": "triage-01-crashloop",
-    "pod": "api-799cf64d4f-qfsjp",
+    "pod": "api-68bb89b75d-gc6w4",
     "container": "api",
     "previous": false,
     "tail": 200
@@ -1387,12 +1393,12 @@
    "method": "read_log",
    "args": {
     "namespace": "triage-01-crashloop",
-    "pod": "api-799cf64d4f-qfsjp",
+    "pod": "api-68bb89b75d-gc6w4",
     "container": "api",
     "previous": true,
     "tail": 200
    },
-   "result": "fatal: required setting LISTEN_PORT is missing\nstarting api\n",
+   "result": "unable to retrieve container logs for containerd://44b3b1e1963d5bfb12ba4d4a9a1540a9eff8f8c8de6509b9c0f5996273d19709",
    "error": null
   },
   {
@@ -1408,9 +1414,9 @@
     "metadata": {
      "annotations": {
       "deployment.kubernetes.io/revision": "1",
-      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"name\":\"api\",\"namespace\":\"triage-01-crashloop\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"api\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"api\"}},\"spec\":{\"containers\":[{\"args\":[\"echo \\\"starting api\\\"\\necho \\\"fatal: required setting LISTEN_PORT is missing\\\" \\u003e\\u00262\\nexit 1\\n\"],\"command\":[\"sh\",\"-c\"],\"image\":\"busybox:1.36.1\",\"name\":\"api\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"32Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}}}]}}}}\n"
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"name\":\"api\",\"namespace\":\"triage-01-crashloop\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"api\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"api\"}},\"spec\":{\"containers\":[{\"args\":[\"echo \\\"starting api\\\"\\nif [ -z \\\"$LISTEN_PORT\\\" ]; then\\n  echo \\\"fatal: required setting LISTEN_PORT is missing\\\" \\u003e\\u00262\\n  exit 1\\nfi\\necho \\\"listening on port $LISTEN_PORT\\\"\\nexec sleep 2147483647\\n\"],\"command\":[\"sh\",\"-c\"],\"image\":\"busybox:1.36.1\",\"name\":\"api\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"32Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}}}]}}}}\n"
      },
-     "creationTimestamp": "2026-10-20T21:41:53+00:00",
+     "creationTimestamp": "2026-10-21T23:10:20+00:00",
      "generation": 1,
      "managedFields": [
       {
@@ -1480,7 +1486,7 @@
        },
        "manager": "kubectl-client-side-apply",
        "operation": "Update",
-       "time": "2026-10-20T21:41:53+00:00"
+       "time": "2026-10-21T23:10:20+00:00"
       },
       {
        "apiVersion": "apps/v1",
@@ -1523,13 +1529,13 @@
        "manager": "kube-controller-manager",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:44:54+00:00"
+       "time": "2026-10-21T23:10:34+00:00"
       }
      ],
      "name": "api",
      "namespace": "triage-01-crashloop",
-     "resourceVersion": "11860",
-     "uid": "e058ef12-452e-41e3-9422-c0194036cfa8"
+     "resourceVersion": "68008",
+     "uid": "9919fdb0-30f1-479e-9a8d-673bb68f2c9c"
     },
     "spec": {
      "progressDeadlineSeconds": 600,
@@ -1557,7 +1563,7 @@
        "containers": [
         {
          "args": [
-          "echo \"starting api\"\necho \"fatal: required setting LISTEN_PORT is missing\" >&2\nexit 1\n"
+          "echo \"starting api\"\nif [ -z \"$LISTEN_PORT\" ]; then\n  echo \"fatal: required setting LISTEN_PORT is missing\" >&2\n  exit 1\nfi\necho \"listening on port $LISTEN_PORT\"\nexec sleep 2147483647\n"
          ],
          "command": [
           "sh",
@@ -1591,16 +1597,16 @@
     "status": {
      "conditions": [
       {
-       "lastTransitionTime": "2026-10-20T21:41:53+00:00",
-       "lastUpdateTime": "2026-10-20T21:41:54+00:00",
-       "message": "ReplicaSet \"api-799cf64d4f\" has successfully progressed.",
+       "lastTransitionTime": "2026-10-21T23:10:20+00:00",
+       "lastUpdateTime": "2026-10-21T23:10:21+00:00",
+       "message": "ReplicaSet \"api-68bb89b75d\" has successfully progressed.",
        "reason": "NewReplicaSetAvailable",
        "status": "True",
        "type": "Progressing"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:44:54+00:00",
-       "lastUpdateTime": "2026-10-20T21:44:54+00:00",
+       "lastTransitionTime": "2026-10-21T23:10:34+00:00",
+       "lastUpdateTime": "2026-10-21T23:10:34+00:00",
        "message": "Deployment does not have minimum availability.",
        "reason": "MinimumReplicasUnavailable",
        "status": "False",

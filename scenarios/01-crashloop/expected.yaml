@@ -3,6 +3,9 @@ category: CrashLoop
 affected_resource: {kind: Deployment, name: api}
 description: Container exits 1 on every start
 seed:
+  # The kubelet's BackOff event ("Back-off restarting failed container") rather than the
+  # container's CrashLoopBackOff state: polling kept catching the container between
+  # restarts, and the event stays listed once emitted (DECISIONS.md 032).
   wait_for:
-    type: container_waiting
-    reasons: [CrashLoopBackOff]
+    type: event
+    reason: BackOff

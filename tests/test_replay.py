@@ -275,11 +275,11 @@ def _pods(reason: str) -> str:
 
 
 def test_record_waits_for_the_signal_again_after_settling() -> None:
-    # A crash-looping container moves on from CrashLoopBackOff (restart, crash, back-off),
-    # so after the settle pause the recorder waits for the signal again before reading.
+    # A failing container moves between states (back-off, retry, back-off), so after
+    # the settle pause the recorder waits for the signal again before reading.
     log: list[str] = []
-    crashing, restarting = _pods("CrashLoopBackOff"), _pods("ContainerCreating")
-    kubectl = ScriptedKubectl([crashing, restarting, restarting, crashing], log)
+    failing, retrying = _pods("ImagePullBackOff"), _pods("ContainerCreating")
+    kubectl = ScriptedKubectl([failing, retrying, retrying, failing], log)
 
     class LoggingReader(TinyReader):
         def whoami(self) -> str:
@@ -287,7 +287,7 @@ def test_record_waits_for_the_signal_again_after_settling() -> None:
             return super().whoami()
 
     result, rec = seed_and_record(
-        find(SCENARIOS, "crashloop"),
+        find(SCENARIOS, "imagepull"),
         kubectl,
         LoggingReader(),
         server_version="v1.34.0",
@@ -306,5 +306,5 @@ def test_record_waits_for_the_signal_again_after_settling() -> None:
         "get pods",
         "sweep starts",
     ]
-    assert result.scenario == "01-crashloop"
-    assert rec.scenario == "01-crashloop"
+    assert result.scenario == "02-imagepull"
+    assert rec.scenario == "02-imagepull"

@@ -1,5 +1,8 @@
-# `tail /dev/zero` keeps buffering a "line" that never ends, so memory grows
-# until it passes the 16Mi limit and the kernel kills the container (OOMKilled).
+# The worker loads a 40 MiB "cache" and keeps it in memory, but its limit is
+# 16Mi, so the kernel kills it on every start (OOMKilled). Raising the limit to
+# 64Mi fixes it (DECISIONS.md 031).
+# How it holds the memory: dd reads one 40 MiB block (bs=41943040) into a buffer,
+# then blocks writing it to `sleep`, which never reads; the buffer stays resident.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -29,7 +32,7 @@ spec:
           args:
             - |
               echo "loading cache into memory"
-              tail /dev/zero
+              dd if=/dev/zero bs=41943040 count=1 | sleep 2147483647
           resources:
             requests: {cpu: 10m, memory: 16Mi}
             limits: {cpu: 200m, memory: 16Mi}

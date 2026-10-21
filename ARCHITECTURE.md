@@ -116,9 +116,9 @@ seed:
 
 | # | Folder | How it's seeded | Expected answer | Seeded when |
 | --- | --- | --- | --- | --- |
-| 1 | `01-crashloop` | busybox command logs an error and exits 1 | CrashLoop, Deployment/api | container waiting: CrashLoopBackOff |
+| 1 | `01-crashloop` | busybox script exits 1 when `LISTEN_PORT` is unset, which the Deployment doesn't set | CrashLoop, Deployment/api | event: BackOff (DECISIONS 032) |
 | 2 | `02-imagepull` | `nginx:1.0.0-does-not-exist` | ImagePull, Deployment/web | waiting: ErrImagePull or ImagePullBackOff |
-| 3 | `03-oomkilled` | `tail /dev/zero` under a 16Mi limit | OOMKilled, Deployment/worker | container terminated: OOMKilled |
+| 3 | `03-oomkilled` | holds a fixed 40 MiB (`dd ... \| sleep`) under a 16Mi limit | OOMKilled, Deployment/worker | container terminated: OOMKilled |
 | 4 | `04-missing-config` | env var from a ConfigMap key that doesn't exist | ConfigError, Deployment/billing (or ConfigMap/app-config) | waiting: CreateContainerConfigError |
 | 5 | `05-failing-probe` | nginx on 80, readiness probe on 8080 | ProbeFailure, Deployment/frontend | event: Unhealthy |
 | 6 | `06-rbac-denied` | curl reads a ConfigMap with a ServiceAccount that has no Role; keeps running | RBACDenied, ServiceAccount/reporter (or Deployment/reporter) | logs contain "is forbidden" |

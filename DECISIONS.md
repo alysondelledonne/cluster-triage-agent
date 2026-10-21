@@ -4,6 +4,9 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 032 | 2026-10-21 | Scenario 1 waits for the BackOff event, not the CrashLoopBackOff container state | Accepted |
+| 031 | 2026-10-21 | Scenarios 1 and 3 break in a way their fix can repair | Accepted |
+| 030 | 2026-10-21 | Milestone 2 hand runs: 6 of 6 right; fix scenarios 1 and 3 and settle how fixes are applied before M4 | Accepted |
 | 029 | 2026-10-21 | First real run: accept objects sent as JSON strings, drop `anyOf` for nullable objects, and fix three rough edges | Accepted |
 | 028 | 2026-10-21 | `triage` runs on a live namespace or a recording, through the same in-process MCP server | Accepted |
 | 027 | 2026-10-21 | One fixed, versioned system prompt; the namespace and any alert go in the first user message | Accepted |
@@ -36,9 +39,25 @@ A running log of design and project decisions: what was decided, why, and what i
 
 ## Open questions
 
+- **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 032 — Scenario 1 waits for the BackOff event, not the CrashLoopBackOff container state
+**Why:** Seeding scenario 1 took 6 seconds the first time, then 84 to 164 seconds, then timed out at 180 seconds while re-recording for 031. The recordings show the container as `terminated: Error` rather than `waiting: CrashLoopBackOff` at the moment it was read, so the kubelet only sometimes reports the waiting state during back-off and a poll every 3 seconds can keep missing it. Exactly why wasn't pinned down. The kubelet's `BackOff` event ("Back-off restarting failed container") is emitted when back-off starts and stays in the event list, so polling can't miss it, and it means the same thing.
+**Consequence:** Only `expected.yaml` changes; the category and expected answer don't. The recording check for scenario 1 now looks for `reason: BackOff` in `get_events` instead of a pod state. The seeding tests that used scenario 1 as their container-state example now use scenario 2.
+
+### 031 — Scenarios 1 and 3 break in a way their fix can repair
+**Why:** 030 found that no fix could make either scenario healthy: scenario 1's script exited 1 unconditionally, and scenario 3's `tail /dev/zero` grew without bound. A scenario whose correct fix can't work would fail the M4 fix-validity check for the scenario's sake, not the agent's. Scenario 1 now exits only when `LISTEN_PORT` is unset and otherwise keeps running; scenario 3 now reads one 40 MiB block with `dd` and holds it by blocking on a pipe to `sleep` (about 41.7 MiB resident, measured), well over its 16Mi limit and under the 64Mi the agent proposed.
+**Consequence:** Same failure signals, categories and expected answers, so `expected.yaml` doesn't change, but both scenarios are re-recorded. Tests now run scenario 1's script with and without `LISTEN_PORT`, and check scenario 3's fixed size sits between its limit and 64Mi. This supersedes the first two findings in 030.
+
+### 030 — Milestone 2 hand runs: 6 of 6 right; fix scenarios 1 and 3 and settle how fixes are applied before M4
+**Why:** The bar was 4 of 6. With `claude-haiku-5-5` and prompt version 1, one run each (scenario 1 live, the rest replayed), all six got the right category and affected object, in 3 to 5 tool calls, at about $0.002 a run, every one accepted on its first submission once 029 was in. Three things came out of reading the fixes, not just the categories:
+- **Scenario 1's fix can't work as written.** The container's script exits 1 unconditionally, so setting `LISTEN_PORT`, which the agent rightly proposed, would not make it Ready. The agent noticed and said so in its explanation. The scenario should exit only when `LISTEN_PORT` is unset.
+- **Scenario 3 has the same problem.** `tail /dev/zero` grows without bound, so no memory limit is enough, and raising it to 64Mi (the proposed fix) would still be OOMKilled. The scenario should allocate a fixed amount above 16Mi (for example 40Mi) and then sleep.
+- **Partial-object fixes and `kubectl apply`.** Fixes name the object and only the fields that change (026). The scenarios were created with client-side `kubectl apply`, so applying scenario 4's fix (a ConfigMap with only `LOG_LEVEL`) the same way would delete `LOG_FORMAT`, and a partial Deployment patch would drop fields like `image`. `kubectl patch` or server-side apply keeps them. The prompt and the field description still say "`kubectl apply`".
+**Consequence:** Milestone 2 is done. Before the M4 fix-validity check: change scenarios 1 and 3 and re-record them, and decide how fixes are applied (now an open question). Weaker evidence picks (`ready: 1/1`, an nginx start-up line) are grounded and harmless; the M3 evals will show whether they matter. One run per scenario says the agent works, not how reliably: that is M3's job.
 
 ### 029 — First real run: accept objects sent as JSON strings, drop `anyOf` for nullable objects, and fix three rough edges
 **Why:** The first `triage --replay` of scenario 6 with Claude Haiku found the right answer (RBACDenied, ServiceAccount/reporter, grounded quotes, a namespaced Role and RoleBinding) but ended `no_submission`: in all three tries it sent `proposed_fix` as a JSON-encoded string, once with `confidence` folded inside it, and the rejection message ("Input should be a valid dictionary") didn't say what was wrong. Nullable nested objects, which Pydantic writes as `anyOf: [object, null]`, are a known trigger for this. Replaying that run's own arguments with the fixes below, the second try is accepted.

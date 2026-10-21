@@ -8,6 +8,9 @@ hygiene, and the wait conditions are checked against small hand-written
 from __future__ import annotations
 
 import json
+import os
+import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -201,24 +204,24 @@ def test_require_kind_context_refuses_other_clusters() -> None:
 
 
 def test_seed_applies_then_waits_until_the_failure_shows() -> None:
-    scenario = find(SCENARIOS, "crashloop")
+    scenario = find(SCENARIOS, "imagepull")
     waiting = json.dumps(_pod({"waiting": {"reason": "ContainerCreating"}}))
-    crashing = json.dumps(_pod({"waiting": {"reason": "CrashLoopBackOff"}}))
-    kubectl, clock = FakeKubectl([waiting, waiting, crashing]), FakeClock()
+    failing = json.dumps(_pod({"waiting": {"reason": "ImagePullBackOff"}}))
+    kubectl, clock = FakeKubectl([waiting, waiting, failing]), FakeClock()
 
     result = seed(scenario, kubectl, poll_s=5, clock=clock.time, sleep=clock.sleep)
 
     assert kubectl.calls[0] == ["apply", "-f", str(scenario.manifest_path)]
     assert result.seconds == 10
-    assert result.scenario == "01-crashloop"
+    assert result.scenario == "02-imagepull"
 
 
 def test_seed_times_out_with_a_useful_error() -> None:
-    scenario = find(SCENARIOS, "crashloop")
+    scenario = find(SCENARIOS, "imagepull")
     waiting = json.dumps(_pod({"waiting": {"reason": "ContainerCreating"}}))
     kubectl, clock = FakeKubectl([waiting]), FakeClock()
 
-    with pytest.raises(SeedTimeout, match="01-crashloop"):
+    with pytest.raises(SeedTimeout, match="02-imagepull"):
         seed(scenario, kubectl, timeout_s=30, poll_s=5, clock=clock.time, sleep=clock.sleep)
 
 
@@ -235,3 +238,63 @@ def _containers(doc: dict[str, Any]) -> list[dict[str, Any]]:
     spec = doc.get("spec", {})
     pod_spec = spec.get("template", {}).get("spec", spec) if doc["kind"] != "Pod" else spec
     return [*pod_spec.get("initContainers", []), *pod_spec.get("containers", [])]
+
+
+# ---------- the proposed fixes can actually work (DECISIONS.md 031) ----------
+
+
+def _script(name: str) -> str:
+    (doc,) = [
+        d for d in load_manifest(find(SCENARIOS, name).manifest_path) if d["kind"] == "Deployment"
+    ]
+    (container,) = doc["spec"]["template"]["spec"]["containers"]
+    return str(container["args"][0])
+
+
+def test_crashloop_waits_for_the_backoff_event() -> None:
+    # The container's waiting state is missed by polling too often (DECISIONS.md 032);
+    # the BackOff event stays in the namespace's event list once the kubelet emits it.
+    cond = find(SCENARIOS, "crashloop").expected.seed.wait_for
+    assert isinstance(cond, EventSeen)
+    assert cond.reason == "BackOff"
+
+
+def test_crashloop_exits_only_without_listen_port() -> None:
+    # The scenario breaks because LISTEN_PORT is missing, so setting it must fix it.
+    script = _script("crashloop")
+    path = {"PATH": os.environ["PATH"]}
+    failed = subprocess.run(
+        ["sh", "-c", script], capture_output=True, text=True, env=path, timeout=5
+    )
+    assert failed.returncode == 1
+    assert "LISTEN_PORT is missing" in failed.stderr
+    with pytest.raises(subprocess.TimeoutExpired):  # still running: the fix works
+        subprocess.run(
+            ["sh", "-c", script],
+            capture_output=True,
+            env={**path, "LISTEN_PORT": "8080"},
+            timeout=1,
+        )
+
+
+def _mebibytes(quantity: str) -> int:
+    assert quantity.endswith("Mi"), quantity
+    return int(quantity[:-2])
+
+
+def test_oomkilled_holds_a_fixed_amount_between_the_limit_and_a_sensible_fix() -> None:
+    # Unbounded growth (the old `tail /dev/zero`) can't be fixed by any limit.
+    script = _script("oomkilled")
+    match = re.search(r"\bdd if=/dev/zero bs=(\d+) count=1\b", script)
+    assert match, script
+    held_mib = int(match.group(1)) / 2**20
+    (doc,) = [
+        d
+        for d in load_manifest(find(SCENARIOS, "oomkilled").manifest_path)
+        if d["kind"] == "Deployment"
+    ]
+    limit = _mebibytes(
+        doc["spec"]["template"]["spec"]["containers"][0]["resources"]["limits"]["memory"]
+    )
+    assert held_mib > 2 * limit, "well over the limit, so it is OOMKilled every start"
+    assert held_mib + 8 <= 64, "a 64Mi limit (the fix the agent proposed) leaves room for it"
