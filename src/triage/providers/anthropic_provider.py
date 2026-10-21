@@ -25,12 +25,18 @@ class AnthropicProvider:
         """Neutral messages -> Anthropic format.
 
         Tool results go back as `tool_result` blocks inside a user turn, and
-        consecutive tool results are merged into one turn.
+        consecutive tool results are merged into one turn. A user note right after
+        tool results (the loop's nudges and forced last turn) joins that same turn as a
+        text block, since user and assistant turns must alternate.
         """
         out: list[dict[str, Any]] = []
         for m in messages:
             if m.role == "user":
-                out.append({"role": "user", "content": m.content})
+                prev = out[-1] if out else None
+                if prev and prev["role"] == "user" and isinstance(prev["content"], list):
+                    prev["content"].append({"type": "text", "text": m.content})
+                else:
+                    out.append({"role": "user", "content": m.content})
             elif m.role == "assistant":
                 blocks: list[dict[str, Any]] = []
                 if m.content:

@@ -4,6 +4,8 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 025 | 2026-10-21 | Keep the template's example eval gate until Milestone 3 replaces it with the scenarios | Accepted |
+| 024 | 2026-10-21 | Cap runs at 12 investigative tool calls plus one forced submission turn; a run ends only on an accepted `submit_diagnosis` | Accepted |
 | 023 | 2026-10-21 | `submit_diagnosis` is an agent-side tool validated against a strict `Diagnosis` schema | Accepted |
 | 022 | 2026-10-20 | Record raw API responses per scenario at the reader level and replay them offline | Accepted |
 | 021 | 2026-10-20 | `describe` shows ConfigMap keys but not values, and drops ServiceAccount Secret names | Accepted |
@@ -30,10 +32,17 @@ A running log of design and project decisions: what was decided, why, and what i
 
 ## Open questions
 
-- **Step cap value.** The template's `MAX_STEPS` defaults to 8; the design says 12 tool calls. Settle in Milestone 2 when the loop is wired to the Kubernetes tools.
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 025 — Keep the template's example eval gate until Milestone 3 replaces it with the scenarios
+**Why:** Milestone 3 is where the evals are rebuilt around the six scenarios and their recordings. Moving the gate now would mean writing it twice. Keeping the old "stop at the first plain-text answer" behaviour when no finish tool is given lets the calculator cases keep checking the loop, provider and grading plumbing in CI meanwhile.
+**Consequence:** `run_agent` has two modes for now. `server.py` and `evals/cases.jsonl` stay until Milestone 3, which removes them along with the plain-text mode if nothing else needs it.
+
+### 024 — Cap runs at 12 investigative tool calls plus one forced submission turn; a run ends only on an accepted `submit_diagnosis`
+**Why:** Settles the open question on the step cap: the design said 12 tool calls, the template counted 8 model turns. Counting tool calls rather than turns measures how much the agent looked, whatever it batches per turn. 005 says the agent must submit rather than guess silently at the cap, so the last turn offers only `submit_diagnosis` and asks for confidence below 0.5 if unsure. Ending only on a submission means every run produces something gradeable, and the stop reason (`submitted_at_cap`, `no_submission`) shows when it didn't go well.
+**Consequence:** Nudges for plain-text answers (2) and retries for rejected submissions (2) are limited, so every run ends. Confidence at the cap is asked for, not enforced; the stop reason is the flag. The Anthropic adapter now puts a note that follows tool results into the same user turn, since turns must alternate. The cap is a default of `run_agent` for now; step 5 exposes it as a setting.
 
 ### 023 — `submit_diagnosis` is an agent-side tool validated against a strict `Diagnosis` schema
 **Why:** Submitting a diagnosis doesn't read the cluster, so it doesn't belong on the MCP server, which stays only about looking at Kubernetes. A Pydantic model gives one definition for the tool schema the model sees and the validation of what it sends. Unknown fields are rejected and every error names its field, so the model can correct a bad call. `proposed_fix` may be null only for Unknown, so a confident category always comes with a fix. Evidence must name one of the five MCP tools, which is what lets step 3 check each quote against that tool's real output.

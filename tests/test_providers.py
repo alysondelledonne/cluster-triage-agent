@@ -150,3 +150,22 @@ def test_grok_uses_max_tokens() -> None:
     p.complete("sys", [Message(role="user", content="q")], [])
     assert "max_tokens" in rec.kwargs and "max_completion_tokens" not in rec.kwargs
     assert "tools" not in rec.kwargs
+
+
+def test_anthropic_note_after_tool_results_joins_their_turn() -> None:
+    # The loop's forced last turn adds a note right after tool results. Anthropic wants
+    # user and assistant turns to alternate, so the note joins the tool-result turn.
+    from triage.providers.anthropic_provider import AnthropicProvider
+    from triage.providers.base import Message
+
+    out = AnthropicProvider.to_api_messages(
+        [
+            Message(role="user", content="diagnose"),
+            Message(role="assistant", tool_calls=[ToolCall("t1", "list_pods", {})]),
+            Message(role="tool", content="pods...", tool_call_id="t1"),
+            Message(role="user", content="Submit now."),
+        ]
+    )
+    assert [m["role"] for m in out] == ["user", "assistant", "user"]
+    assert out[-1]["content"][-1] == {"type": "text", "text": "Submit now."}
+    assert out[-1]["content"][0]["type"] == "tool_result"

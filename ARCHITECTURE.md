@@ -62,8 +62,14 @@ How the server is put together:
 
 ## Agent loop
 
-- Short system prompt with the triage order: pod states, then events, then logs, then config and permissions.
-- Up to 12 tool calls. On the cap, the agent must submit with low confidence rather than guess silently.
+`run_agent` in `src/triage/agent/loop.py`. For triage it runs with `submit_diagnosis` as its finish tool (DECISIONS 024); without one it behaves as the template did (stop at the first plain-text answer, at most `max_steps` turns), which the example eval gate still relies on until Milestone 3 (DECISIONS 025).
+
+- **A run ends only on an accepted submission.** The finish tool is offered next to the MCP tools. A submission that fails validation goes back to the model as an error listing each problem; after 2 such retries a third rejection ends the run. Calls after an accepted submission in the same turn are not run.
+- **Up to 12 investigative tool calls.** Calls past the limit in the same turn are refused with an error. The next turn is forced: `submit_diagnosis` is the only tool offered, with a note asking for a submission now and confidence below 0.5 if the evidence isn't conclusive. A submission there ends the run as `submitted_at_cap`; anything else ends it as `no_submission`.
+- **Plain-text answers get a nudge** to call `submit_diagnosis`, at most 2 times.
+- Stop reasons: `submitted`, `submitted_at_cap`, `no_submission` (and `answered` / `max_steps` without a finish tool). Each run records its nudges and rejected submissions, and the parsed diagnosis as `submission`.
+- Every limit is counted, so every run ends: at most 12 calls + 2 nudges + 3 submissions + 1 forced turn.
+- Short system prompt with the triage order: pod states, then events, then logs, then config and permissions (M2, step 4).
 - Every run writes one JSON line with tool calls, tokens, latency and cost; the evals and README results table read from it.
 - The model sits behind the provider adapter (`src/triage/providers/`), so swapping Claude for a second model is a config change.
 
@@ -153,7 +159,7 @@ cluster-triage-agent/
   ARCHITECTURE.md      this file
   DECISIONS.md         decision log
   src/triage/
-    mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py; server.py = template example until M2
+    mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py; server.py = template example until M3
     agent/             loop, submit.py (submit_diagnosis), system prompt, tool-call cap
     models.py          Category, ResourceRef, Diagnosis (Pydantic)
     scenarios.py       triage-seed: seed, wait for, record, delete scenarios

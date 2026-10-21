@@ -16,9 +16,11 @@ class ScriptedProvider:
         self.turns = list(turns)
         self.model = model
         self.calls: list[list[Message]] = []
+        self.tools_offered: list[list[str]] = []  # tool names offered on each call
 
     def complete(self, system: str, messages: list[Message], tools: list[ToolSpec]) -> ModelTurn:
         self.calls.append(list(messages))
+        self.tools_offered.append([t.name for t in tools])
         if not self.turns:
             raise RuntimeError("ScriptedProvider ran out of turns")
         return self.turns.pop(0)

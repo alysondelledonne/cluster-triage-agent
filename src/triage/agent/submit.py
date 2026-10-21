@@ -2,9 +2,10 @@
 
 It lives on the agent side, not on the MCP server: it doesn't look at the cluster,
 it validates the model's answer against the `Diagnosis` schema. The agent loop
-(Milestone 2, step 2) offers it next to the MCP tools and stops when a submission
-parses. When one doesn't, `SubmissionError` carries a message listing each problem
-by field, which goes back to the model so it can correct the call.
+offers it next to the MCP tools and stops when a submission parses
+(`diagnosis_finish`, DECISIONS.md 024). When one doesn't, `SubmissionError` carries
+a message listing each problem by field, which goes back to the model so it can
+correct the call.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from pydantic import ValidationError
 
 from ..models import Diagnosis
 from ..providers.base import ToolSpec
+from .loop import Finish
 
 SUBMIT_DIAGNOSIS = "submit_diagnosis"
 
@@ -74,3 +76,8 @@ def parse_submission(arguments: dict[str, Any]) -> Diagnosis:
         raise SubmissionError(
             f"{SUBMIT_DIAGNOSIS} was rejected; fix these and call it again:\n" + "\n".join(problems)
         ) from err
+
+
+def diagnosis_finish() -> Finish:
+    """`submit_diagnosis` as the agent loop's finish tool."""
+    return Finish(spec=submit_diagnosis_spec(), parse=parse_submission)
