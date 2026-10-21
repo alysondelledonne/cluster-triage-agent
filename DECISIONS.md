@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 027 | 2026-10-21 | One fixed, versioned system prompt; the namespace and any alert go in the first user message | Accepted |
 | 026 | 2026-10-21 | Reject submissions with ungrounded quotes or an unsafe fix, and measure first-try grounding from the trace | Accepted |
 | 025 | 2026-10-21 | Keep the template's example eval gate until Milestone 3 replaces it with the scenarios | Accepted |
 | 024 | 2026-10-21 | Cap runs at 12 investigative tool calls plus one forced submission turn; a run ends only on an accepted `submit_diagnosis` | Accepted |
@@ -36,6 +37,10 @@ A running log of design and project decisions: what was decided, why, and what i
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 027 — One fixed, versioned system prompt; the namespace and any alert go in the first user message
+**Why:** A prompt that never changes between runs is one text to reason about and compare across eval runs, and the API can cache it. The namespace is per-run input, so it belongs in the user message, alongside an optional alert from the caller, which is labelled a hint rather than proof so the agent still checks it. The prompt lists the signs of every category, built from the `Category` enum, says which object counts as "affected" (the Deployment, or the ServiceAccount for RBACDenied), and repeats the rules the grounding check enforces (exact quotes; named, namespaced, non-Secret fixes) so most submissions pass the first time.
+**Consequence:** Changing the prompt means bumping `PROMPT_VERSION`; runs will record it from step 5. Tests check the rules and the triage order are present, not the prompt's quality; that is what the hand runs and M3 evals measure. The NetworkPolicy signs describe symptoms only, because the tools can't read NetworkPolicies yet (an M4 change to the tools and the RBAC allowlist).
 
 ### 026 — Reject submissions with ungrounded quotes or an unsafe fix, and measure first-try grounding from the trace
 **Why:** 006 says every quote is checked against real tool output; this decides what happens when one fails. Rejecting it and letting the model retry means a person never sees an invented quote in a report, and the trace still holds every attempt, so `submission_attempts` can report the first-try hallucination rate for the evals. The other option, accepting the submission and marking quotes as unverified, measured the same thing but showed made-up evidence to the reader. Matching ignores whitespace and two escaping differences (`\"` in JSON logs, `''` in YAML) but nothing else, and a quote counts only for the tool it names. The fix gets the same treatment: it must parse, each object must name its `apiVersion`, `kind` and `metadata.name` (so it's clear what it applies to and can be dry-run in M4), and a Secret, a cluster-wide kind or another namespace sends it back rather than reaching a human.

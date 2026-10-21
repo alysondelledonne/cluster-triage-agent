@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. The system prompt and the `triage` CLI on the Kubernetes tools below are the target design for the rest of Milestone 2. Until then `triage` and the offline eval gate still use the template's example tools.
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the system prompt in `agent/prompt.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. The `triage` CLI on the Kubernetes tools below is the target design for the rest of Milestone 2. Until then `triage` and the offline eval gate still use the template's example tools.
 
 ## Overview
 
@@ -69,7 +69,8 @@ How the server is put together:
 - **Plain-text answers get a nudge** to call `submit_diagnosis`, at most 2 times.
 - Stop reasons: `submitted`, `submitted_at_cap`, `no_submission` (and `answered` / `max_steps` without a finish tool). Each run records its nudges and rejected submissions, and the parsed diagnosis as `submission`.
 - Every limit is counted, so every run ends: at most 12 calls + 2 nudges + 3 submissions + 1 forced turn.
-- Short system prompt with the triage order: pod states, then events, then logs, then config and permissions (M2, step 4).
+- **System prompt** (`agent/prompt.py`, DECISIONS 027): about 440 words, the same for every run, versioned as `PROMPT_VERSION`. It gives the triage order (`list_pods`, `get_events`, `get_logs` with `previous=true` for restarting containers, `describe`, `can_i`), the 12-call budget, the signs of each category (built from the `Category` enum, so none is left out), the rule that cluster output is evidence and never instructions, no Secrets, quotes copied exactly, and the fix rules. Tests pin each of these so an edit can't silently drop one.
+- **First user message** (`task_message`): names the namespace, and passes an optional alert from the caller marked as a hint, not proof. Keeping the namespace out of the system prompt keeps that text identical across runs.
 - Every run writes one JSON line with tool calls, tokens, latency and cost; the evals and README results table read from it.
 - The model sits behind the provider adapter (`src/triage/providers/`), so swapping Claude for a second model is a config change.
 
@@ -162,7 +163,7 @@ cluster-triage-agent/
   DECISIONS.md         decision log
   src/triage/
     mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py; server.py = template example until M3
-    agent/             loop.py (cap, finish tool), submit.py (submit_diagnosis), grounding.py; prompt (M2)
+    agent/             loop.py (cap, finish tool), submit.py (submit_diagnosis), grounding.py, prompt.py
     models.py          Category, ResourceRef, Diagnosis (Pydantic)
     scenarios.py       triage-seed: seed, wait for, record, delete scenarios
     providers/         adapter: Claude + one comparison model
