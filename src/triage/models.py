@@ -64,8 +64,10 @@ class ProposedFix(BaseModel):
     yaml: str = Field(
         min_length=1,
         max_length=5000,
-        description="The smallest YAML a person could `kubectl apply` to fix it: a patch to "
-        "the broken object or a new object (e.g. a Role). Never a Secret.",
+        description="The smallest YAML a person could `kubectl apply` to fix it. Each "
+        "document names apiVersion, kind and metadata.name and holds only the fields that "
+        "change, or is a new object (e.g. a Role). Stay in the run's namespace; never a "
+        "Secret or a cluster-wide object.",
     )
 
 

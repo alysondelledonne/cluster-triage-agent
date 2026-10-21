@@ -26,13 +26,17 @@ async def _list_pods(args: dict[str, Any]) -> str:
 LIST_PODS = Tool(ToolSpec("list_pods", "List pods", {"type": "object"}), _list_pods)
 
 
+NS = "triage-01-crashloop"
+FIX = "apiVersion: apps/v1\nkind: Deployment\nmetadata: {name: api}\nspec: {replicas: 1}\n"
+
+
 def diagnosis(**change: Any) -> dict[str, Any]:
     return {
         "category": "CrashLoop",
         "affected_resource": {"kind": "Deployment", "name": "api"},
         "root_cause": "The api container exits with status 1 on every start.",
         "evidence": [{"tool": "list_pods", "quote": "waiting: CrashLoopBackOff"}],
-        "proposed_fix": {"explanation": "Set LISTEN_PORT.", "yaml": "spec: {}"},
+        "proposed_fix": {"explanation": "Set LISTEN_PORT.", "yaml": FIX},
         "confidence": 0.8,
         **change,
     }
@@ -48,7 +52,7 @@ def submit(i: int = 0, **change: Any) -> ToolCall:
 
 def run(provider: ScriptedProvider, **kwargs: Any) -> Any:
     return asyncio.run(
-        run_agent(provider, "sys", "diagnose", [LIST_PODS], finish=diagnosis_finish(), **kwargs)
+        run_agent(provider, "sys", "diagnose", [LIST_PODS], finish=diagnosis_finish(NS), **kwargs)
     )
 
 
@@ -87,11 +91,13 @@ def test_calls_after_an_accepted_submission_are_not_run() -> None:
 
 
 def test_a_plain_text_answer_gets_a_nudge() -> None:
-    provider = ScriptedProvider([turn("It's a crash loop."), turn(calls=[submit()])])
+    provider = ScriptedProvider(
+        [turn(calls=[look()]), turn("It's a crash loop."), turn(calls=[submit()])]
+    )
     result = run(provider)
     assert result.stopped == "submitted"
     assert result.nudges == 1
-    assert SUBMIT_DIAGNOSIS in last_user_message(provider, 1)
+    assert SUBMIT_DIAGNOSIS in last_user_message(provider, 2)
 
 
 def test_too_many_plain_text_answers_end_without_a_submission() -> None:
@@ -107,14 +113,16 @@ def test_too_many_plain_text_answers_end_without_a_submission() -> None:
 
 
 def test_a_rejected_submission_goes_back_with_the_reasons() -> None:
-    provider = ScriptedProvider([turn(calls=[submit(1, confidence=3)]), turn(calls=[submit(2)])])
+    provider = ScriptedProvider(
+        [turn(calls=[look()]), turn(calls=[submit(1, confidence=3)]), turn(calls=[submit(2)])]
+    )
     result = run(provider)
     assert result.stopped == "submitted"
     assert result.rejected_submissions == 1
-    rejected = result.tool_calls[0]
+    rejected = result.tool_calls[1]
     assert rejected.is_error
     assert "- confidence: Input should be less than or equal to 1" in rejected.result
-    sent_back = provider.calls[1][-1]
+    sent_back = provider.calls[2][-1]
     assert sent_back.role == "tool" and sent_back.is_error and sent_back.tool_call_id == "submit1"
 
 
@@ -176,3 +184,40 @@ def test_a_rejection_on_the_forced_turn_gets_another_try() -> None:
     result = run(provider, max_tool_calls=1)
     assert result.stopped == "submitted_at_cap"
     assert provider.tools_offered[2] == [SUBMIT_DIAGNOSIS]
+
+
+# ---------- grounding (DECISIONS.md 026) ----------
+
+
+def test_an_ungrounded_quote_is_sent_back_and_then_corrected() -> None:
+    invented = [{"tool": "list_pods", "quote": "OOMKilled"}]
+    provider = ScriptedProvider(
+        [turn(calls=[look()]), turn(calls=[submit(1, evidence=invented)]), turn(calls=[submit(2)])]
+    )
+    result = run(provider)
+    assert result.stopped == "submitted"
+    assert result.rejected_submissions == 1
+    rejected = result.tool_calls[1]
+    assert rejected.is_error
+    assert "- evidence.0.quote: not found in any list_pods output" in rejected.result
+
+
+def test_quotes_must_come_from_calls_made_before_the_submission() -> None:
+    # Submitting before looking: the quote can't be grounded yet.
+    provider = ScriptedProvider(
+        [turn(calls=[submit(1)]), turn(calls=[look()]), turn(calls=[submit(2)])]
+    )
+    result = run(provider)
+    assert result.rejected_submissions == 1
+    assert result.stopped == "submitted"
+
+
+def test_a_fix_outside_the_namespace_is_sent_back() -> None:
+    elsewhere = FIX.replace("{name: api}", "{name: api, namespace: default}")
+    fix = {"explanation": "x", "yaml": elsewhere}
+    provider = ScriptedProvider(
+        [turn(calls=[look()]), turn(calls=[submit(1, proposed_fix=fix)]), turn(calls=[submit(2)])]
+    )
+    result = run(provider)
+    assert result.rejected_submissions == 1
+    assert "- proposed_fix.yaml: document 1: namespace default" in result.tool_calls[1].result

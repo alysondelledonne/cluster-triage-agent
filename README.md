@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 1 done (2026-10-20): six seeded scenarios, read-only RBAC, the MCP server's five read tools with output trimming, and recorded API responses replayed offline; scenario 6 was diagnosed by chatting through the server in the Claude desktop app. Milestone 2 (the agent) in progress: the `Diagnosis` model and the `submit_diagnosis` tool are built, and the loop now requires a submission and caps tool calls at 12; next is checking evidence quotes against the real tool output.
+**Status:** Milestone 1 done (2026-10-20): six seeded scenarios, read-only RBAC, the MCP server's five read tools with output trimming, and recorded API responses replayed offline; scenario 6 was diagnosed by chatting through the server in the Claude desktop app. Milestone 2 (the agent) in progress: the `Diagnosis` model and the `submit_diagnosis` tool are built, and the loop now requires a submission and caps tool calls at 12, and a submission is accepted only when every evidence quote is found in the run's tool output and the fix stays in the namespace; next is the system prompt.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -86,7 +86,7 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 - [ ] System prompt with the triage order (pods, events, logs, config, permissions)
 - [ ] Every run logged to JSON lines: tool calls, tokens, latency, cost
 - [ ] CLI: `triage --namespace demo-crashloop` prints a readable report
-- [ ] Evidence quotes checked against the real tool output
+- [x] Evidence quotes checked against the real tool output
 - [ ] At least 4 of 6 scenarios right by hand; misses noted
 
 **Done when:** one command diagnoses any scenario and prints root cause, evidence and a proposed fix.

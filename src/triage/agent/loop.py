@@ -48,11 +48,12 @@ class Tool:
 
 @dataclass
 class Finish:
-    """The tool that ends a run. `parse` turns its arguments into the run's answer,
-    or raises ValueError with a message the model can act on."""
+    """The tool that ends a run. `parse` gets its arguments and every tool call made so
+    far in the run (so it can check the answer against them), and returns the run's
+    answer or raises ValueError with a message the model can act on."""
 
     spec: ToolSpec
-    parse: Callable[[dict[str, Any]], Any]
+    parse: Callable[[dict[str, Any], list[ToolRecord]], Any]
 
 
 @dataclass
@@ -225,7 +226,7 @@ async def _finish_loop(
             if call.name == name:
                 start = time.perf_counter()
                 try:
-                    result.submission = finish.parse(call.arguments)
+                    result.submission = finish.parse(call.arguments, list(result.tool_calls))
                 except ValueError as err:
                     rec = ToolRecord(name, call.arguments, str(err), True, 0.0)
                     result.tool_calls.append(rec)

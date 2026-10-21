@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 026 | 2026-10-21 | Reject submissions with ungrounded quotes or an unsafe fix, and measure first-try grounding from the trace | Accepted |
 | 025 | 2026-10-21 | Keep the template's example eval gate until Milestone 3 replaces it with the scenarios | Accepted |
 | 024 | 2026-10-21 | Cap runs at 12 investigative tool calls plus one forced submission turn; a run ends only on an accepted `submit_diagnosis` | Accepted |
 | 023 | 2026-10-21 | `submit_diagnosis` is an agent-side tool validated against a strict `Diagnosis` schema | Accepted |
@@ -35,6 +36,10 @@ A running log of design and project decisions: what was decided, why, and what i
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 026 — Reject submissions with ungrounded quotes or an unsafe fix, and measure first-try grounding from the trace
+**Why:** 006 says every quote is checked against real tool output; this decides what happens when one fails. Rejecting it and letting the model retry means a person never sees an invented quote in a report, and the trace still holds every attempt, so `submission_attempts` can report the first-try hallucination rate for the evals. The other option, accepting the submission and marking quotes as unverified, measured the same thing but showed made-up evidence to the reader. Matching ignores whitespace and two escaping differences (`\"` in JSON logs, `''` in YAML) but nothing else, and a quote counts only for the tool it names. The fix gets the same treatment: it must parse, each object must name its `apiVersion`, `kind` and `metadata.name` (so it's clear what it applies to and can be dry-run in M4), and a Secret, a cluster-wide kind or another namespace sends it back rather than reaching a human.
+**Consequence:** Grounding failures use the same 2 retries as schema errors. A quote must come from a call made before the submission, so submitting before looking always fails. `Finish.parse` now receives the run's tool records. The cluster-wide list is a fixed set of common kinds, not a lookup against the API.
 
 ### 025 — Keep the template's example eval gate until Milestone 3 replaces it with the scenarios
 **Why:** Milestone 3 is where the evals are rebuilt around the six scenarios and their recordings. Moving the gate now would mean writing it twice. Keeping the old "stop at the first plain-text answer" behaviour when no finish tool is given lets the calculator cases keep checking the loop, provider and grading plumbing in CI meanwhile.

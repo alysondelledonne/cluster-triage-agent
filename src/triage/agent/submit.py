@@ -16,7 +16,8 @@ from pydantic import ValidationError
 
 from ..models import Diagnosis
 from ..providers.base import ToolSpec
-from .loop import Finish
+from .grounding import check_diagnosis
+from .loop import Finish, ToolRecord
 
 SUBMIT_DIAGNOSIS = "submit_diagnosis"
 
@@ -73,11 +74,27 @@ def parse_submission(arguments: dict[str, Any]) -> Diagnosis:
             # Pydantic prefixes a custom validator's message with "Value error, ".
             message = str(e["msg"]).removeprefix("Value error, ")
             problems.append(f"- {_where(e['loc'])}: {message}")
-        raise SubmissionError(
-            f"{SUBMIT_DIAGNOSIS} was rejected; fix these and call it again:\n" + "\n".join(problems)
-        ) from err
+        raise _rejected(problems) from err
 
 
-def diagnosis_finish() -> Finish:
-    """`submit_diagnosis` as the agent loop's finish tool."""
-    return Finish(spec=submit_diagnosis_spec(), parse=parse_submission)
+def _rejected(problems: list[str]) -> SubmissionError:
+    return SubmissionError(
+        f"{SUBMIT_DIAGNOSIS} was rejected; fix these and call it again:\n" + "\n".join(problems)
+    )
+
+
+def diagnosis_finish(namespace: str) -> Finish:
+    """`submit_diagnosis` as the agent loop's finish tool for a run in `namespace`.
+
+    A submission must fit the schema, quote only text from this run's tool output, and
+    propose a fix that stays in the namespace (agent/grounding.py, DECISIONS.md 026).
+    """
+
+    def parse(arguments: dict[str, Any], records: list[ToolRecord]) -> Diagnosis:
+        diagnosis = parse_submission(arguments)
+        report = check_diagnosis(diagnosis, records, namespace)
+        if not report.ok:
+            raise _rejected(report.problems())
+        return diagnosis
+
+    return Finish(spec=submit_diagnosis_spec(), parse=parse)

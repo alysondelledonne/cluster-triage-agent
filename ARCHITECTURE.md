@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. The agent wiring below (the loop requiring `submit_diagnosis`, the prompt, evidence checks, the CLI) is the target design for Milestones 2–3. Until then `triage` and the offline eval gate still use the template's example tools.
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. The system prompt and the `triage` CLI on the Kubernetes tools below are the target design for the rest of Milestone 2. Until then `triage` and the offline eval gate still use the template's example tools.
 
 ## Overview
 
@@ -82,15 +82,17 @@ How the server is put together:
 | `category` | One of CrashLoop, ImagePull, OOMKilled, ConfigError, ProbeFailure, RBACDenied, NetworkPolicy, Unknown | |
 | `affected_resource` | `{kind, name}` | |
 | `root_cause` | One or two plain-English sentences | 10–600 characters |
-| `evidence` | List of `{tool, quote}`; `tool` is one of the five MCP tools; each quote is checked against the real tool output (M2, step 3) | 1–8 items, quotes 3–500 characters |
-| `proposed_fix` | `{explanation, yaml}`: YAML a person could `kubectl apply` | required unless `category` is Unknown; YAML up to 5,000 characters |
+| `evidence` | List of `{tool, quote}`; `tool` is one of the five MCP tools; each quote must appear in the output of an earlier call to that tool in the run | 1–8 items, quotes 3–500 characters |
+| `proposed_fix` | `{explanation, yaml}`: YAML a person could `kubectl apply`; each document names `apiVersion`, `kind` and `metadata.name`, stays in the run's namespace, and is never a Secret or cluster-wide object | required unless `category` is Unknown; YAML up to 5,000 characters |
 | `confidence` | 0 to 1 | |
 
 How a submission is handled:
 
 - The tool's input schema is generated from the model, with every nested definition inlined (no `$ref`), since some model APIs reject references in tool schemas. Field descriptions in the model are the instructions the model reads.
 - Unknown fields are rejected, so a misspelled field comes back as an error instead of being dropped.
-- `parse_submission` returns a `Diagnosis` or raises `SubmissionError` with one line per problem (`- confidence: Input should be less than or equal to 1`). In step 2 the loop sends that text back to the model to correct, a limited number of times.
+- `parse_submission` returns a `Diagnosis` or raises `SubmissionError` with one line per problem (`- confidence: Input should be less than or equal to 1`). The loop sends that text back to the model to correct, a limited number of times.
+- **Grounding** (`agent/grounding.py`, DECISIONS 026). A schema-valid submission is then checked against the run so far: each quote, after collapsing whitespace and unescaping `\"` and YAML's `''`, must appear in the output of an earlier call to the tool it names (error results count; case and wording must match); and the fix YAML must parse, name each object, and stay out of Secrets, cluster-wide kinds and other namespaces. Any failure rejects the submission with one line per problem (`- evidence.1.quote: not found in any get_logs output in this run`), using the same retries as schema errors. So an accepted diagnosis only ever carries checked quotes.
+- `submission_attempts` re-checks every submission in a run's trace against the calls made before it, so the evals can still report how often the first try was ungrounded.
 
 ## Failure scenarios
 
@@ -160,7 +162,7 @@ cluster-triage-agent/
   DECISIONS.md         decision log
   src/triage/
     mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py; server.py = template example until M3
-    agent/             loop, submit.py (submit_diagnosis), system prompt, tool-call cap
+    agent/             loop.py (cap, finish tool), submit.py (submit_diagnosis), grounding.py; prompt (M2)
     models.py          Category, ResourceRef, Diagnosis (Pydantic)
     scenarios.py       triage-seed: seed, wait for, record, delete scenarios
     providers/         adapter: Claude + one comparison model

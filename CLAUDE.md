@@ -58,7 +58,8 @@ Now:
 - `README.md` overview and progress tracker; `ARCHITECTURE.md` design; `DECISIONS.md` decision log
 - `src/triage/providers/` model adapter (Claude, OpenAI-compatible) + offline fakes
 - `src/triage/agent/` agent loop (ends on an accepted `submit_diagnosis`, 12 tool calls then a forced
-  submission), MCP tool bridge, `submit.py` the `submit_diagnosis` tool
+  submission), MCP tool bridge, `submit.py` the `submit_diagnosis` tool, `grounding.py` checks quotes
+  and fixes against the run
 - `src/triage/mcp_server/` `kube_server.py` the read-only Kubernetes MCP server (`triage-mcp`), `kube.py`
   the cluster reader, `trim.py` output trimming, `replay.py` record and replay; `server.py` is the
   template's example server, still used by `triage` and the eval gate until M3
@@ -73,7 +74,7 @@ Now:
   `tests/fixtures/scenarios/` recorded per scenario and replayed by `mcp_server/replay.py`
 
 Coming in M2–M3:
-- `src/triage/agent/` system prompt, evidence checks
+- `src/triage/agent/` system prompt
 - `src/triage/cli.py` `triage --namespace <ns>` on the Kubernetes tools; eval gate on the scenarios
 
 ## Conventions
