@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 1 in progress. Scenarios, read-only RBAC and the MCP server's five read tools (with output trimming) are built and tested offline; every scenario's real API responses are recorded into `tests/fixtures/scenarios/` and replayed offline. Next is connecting the server to Claude and triaging one scenario by chatting.
+**Status:** Milestone 1 done (2026-10-20): six seeded scenarios, read-only RBAC, the MCP server's five read tools with output trimming, and recorded API responses replayed offline; scenario 6 was diagnosed by chatting through the server in the Claude desktop app. Milestone 2 (the agent) is next.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -66,7 +66,7 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 
 **Done when:** CI is green on an empty project and `kubectl get nodes` works against kind. ✅
 
-### Milestone 1: Broken cluster and read-only tools — in progress
+### Milestone 1: Broken cluster and read-only tools — done 2026-10-20
 
 - [x] Scenarios 1–6 as manifests plus `expected.yaml`, each in its own namespace
 - [x] Script that applies a scenario, waits until the failure shows, and deletes it afterward (`triage-seed`)
@@ -75,9 +75,9 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 - [x] MCP server with the five read tools, running under that ServiceAccount
 - [x] Output trimming (log line cap, managed fields removed)
 - [x] Each tool's real output per scenario recorded into `tests/fixtures/` (`triage-seed record`)
-- [ ] Server connected to Claude and one scenario triaged by chatting, as a sanity check
+- [x] Server connected to Claude and one scenario triaged by chatting, as a sanity check (scenario 6, Claude desktop app)
 
-**Done when:** all six scenarios seed reliably, every tool has tests, and a scenario can be diagnosed by hand through the MCP server.
+**Done when:** all six scenarios seed reliably, every tool has tests, and a scenario can be diagnosed by hand through the MCP server. ✅
 
 ### Milestone 2: The agent
 
