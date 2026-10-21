@@ -36,13 +36,19 @@ import yaml
 from pydantic import BaseModel, Field
 
 from .mcp_server import trim
-from .mcp_server.kube import Kind, KubeClientReader, KubeError, KubeReader, service_account_subject
+from .mcp_server.kube import (
+    DEFAULT_AGENT_KUBECONFIG,
+    Kind,
+    KubeClientReader,
+    KubeError,
+    KubeReader,
+    service_account_subject,
+)
 from .mcp_server.kube_server import IdentityError, require_agent_identity
 from .mcp_server.replay import Recording, RecordingReader, SecretInRecording
 from .models import Category, ResourceRef
 
 DEFAULT_CONTEXT = "kind-triage"
-DEFAULT_AGENT_KUBECONFIG = Path.home() / ".kube" / "triage-agent.yaml"
 DEFAULT_FIXTURES_DIR = Path("tests/fixtures/scenarios")
 
 # ---------- wait conditions: how to tell a scenario's failure has shown ----------

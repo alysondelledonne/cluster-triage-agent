@@ -154,3 +154,48 @@ def test_evidence_tools_are_exactly_the_servers_tools() -> None:
             return {t.name for t in (await client.list_tools()).tools}
 
     assert set(get_args(EvidenceTool)) == asyncio.run(names())
+
+
+# ---------- what real models send (first real run, DECISIONS.md 029) ----------
+
+
+def test_an_object_sent_as_a_json_string_is_accepted() -> None:
+    # Claude Haiku sent proposed_fix as a JSON-encoded string on its first real run.
+    args = valid()
+    args["proposed_fix"] = json.dumps(args["proposed_fix"])
+    args["affected_resource"] = json.dumps(args["affected_resource"])
+    args["evidence"] = json.dumps(args["evidence"])
+    d = parse_submission(args)
+    assert d.proposed_fix is not None
+    assert d.proposed_fix.yaml.startswith("apiVersion")
+    assert d.affected_resource.name == "reporter"
+    assert len(d.evidence) == 2
+
+
+def test_a_json_string_with_extra_text_keeps_the_object_and_reports_the_rest() -> None:
+    # The first real attempt also folded confidence into the same string.
+    args = valid()
+    del args["confidence"]
+    args["proposed_fix"] = json.dumps(valid()["proposed_fix"]) + ', "confidence": 0.9}'
+    with pytest.raises(SubmissionError) as err:
+        parse_submission(args)
+    assert "- confidence: Field required" in str(err.value)
+    assert "proposed_fix" not in str(err.value)
+
+
+def test_a_plain_string_where_an_object_belongs_gets_a_clear_message() -> None:
+    with pytest.raises(SubmissionError) as err:
+        parse_submission({**valid(), "proposed_fix": "add a Role"})
+    assert "- proposed_fix: send an object with explanation and yaml, not a string" in str(
+        err.value
+    )
+
+
+def test_nullable_objects_are_plain_objects_in_the_schema() -> None:
+    # anyOf [object, null] is what led the model to send a string; use a type list.
+    schema = submit_diagnosis_spec().input_schema
+    assert "anyOf" not in json.dumps(schema)
+    fix = schema["properties"]["proposed_fix"]
+    assert fix["type"] == ["object", "null"]
+    assert set(fix["properties"]) == {"explanation", "yaml"}
+    assert fix["description"]

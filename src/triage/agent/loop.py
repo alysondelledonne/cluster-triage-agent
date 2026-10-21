@@ -82,6 +82,7 @@ class AgentResult:
     submission: Any = None  # the parsed answer from the finish tool, e.g. a Diagnosis
     nudges: int = 0
     rejected_submissions: int = 0
+    info: dict[str, Any] = field(default_factory=dict)  # caller's context, e.g. namespace
 
     def to_record(self) -> dict[str, Any]:
         rec = asdict(self)
@@ -131,6 +132,7 @@ async def run_agent(
     *,
     finish: Finish | None = None,
     max_tool_calls: int = DEFAULT_MAX_TOOL_CALLS,
+    info: dict[str, Any] | None = None,
 ) -> AgentResult:
     result = AgentResult(
         run_id=uuid.uuid4().hex[:12],
@@ -139,6 +141,7 @@ async def run_agent(
         final_text="",
         stopped="max_steps",
         steps=0,
+        info=dict(info or {}),
     )
     messages: list[Message] = [Message(role="user", content=user_input)]
     started = time.perf_counter()

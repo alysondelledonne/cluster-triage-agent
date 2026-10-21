@@ -26,12 +26,18 @@ from mcp.client import Client
 
 from ..agent.loop import AgentResult, run_agent
 from ..agent.mcp_tools import tools_from_mcp
-from ..cli import SYSTEM_PROMPT
 from ..config import load_settings
 from ..mcp_server.server import server
 from ..providers import Provider, get_provider
 from ..providers.base import Message, ModelTurn, ToolCall
 from ..providers.fake import PolicyProvider
+
+# The template's example prompt, for the calculator cases. It goes with them in
+# Milestone 3, when the evals move to the scenarios (DECISIONS.md 025).
+SYSTEM_PROMPT = (
+    "You are a careful assistant. Use the available tools for any arithmetic or "
+    "counting instead of working it out yourself. Answer in one short sentence."
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 EVAL_DIR = ROOT / "evals"

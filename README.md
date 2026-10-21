@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 1 done (2026-10-20): six seeded scenarios, read-only RBAC, the MCP server's five read tools with output trimming, and recorded API responses replayed offline; scenario 6 was diagnosed by chatting through the server in the Claude desktop app. Milestone 2 (the agent) in progress: the `Diagnosis` model and the `submit_diagnosis` tool are built, and the loop now requires a submission and caps tool calls at 12, and a submission is accepted only when every evidence quote is found in the run's tool output and the fix stays in the namespace; the system prompt is written. Next is the `triage` CLI on the Kubernetes tools.
+**Status:** Milestone 1 done (2026-10-20): six seeded scenarios, read-only RBAC, the MCP server's five read tools with output trimming, and recorded API responses replayed offline; scenario 6 was diagnosed by chatting through the server in the Claude desktop app. Milestone 2 (the agent) in progress: the `Diagnosis` model and the `submit_diagnosis` tool are built, and the loop now requires a submission and caps tool calls at 12, and a submission is accepted only when every evidence quote is found in the run's tool output and the fix stays in the namespace; the system prompt is written, and `triage` diagnoses a live namespace or a recording and prints a report. Next is the hand runs: Claude on all six scenarios.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -53,6 +53,19 @@ uv run triage-mcp --namespace triage-01-crashloop --kubeconfig ~/.kube/triage-ag
 uv run triage-seed record
 ```
 
+## Diagnose a namespace
+
+`triage` runs the agent: the five read-only tools, the triage prompt, and `submit_diagnosis` as the only way to finish. With `--namespace` it reads the live cluster through the agent's kubeconfig above and refuses to run as anyone else. With `--replay` it reads a recording instead, so no cluster is needed. Both call the model, so both cost a little; set `ANTHROPIC_API_KEY` in `.env` first.
+
+```bash
+uv run triage-seed apply 1
+uv run triage --namespace triage-01-crashloop
+uv run triage --replay tests/fixtures/scenarios/06-rbac-denied/recording.json
+uv run triage --namespace triage-01-crashloop --alert "api pods keep restarting" --json
+```
+
+It prints the category and affected object, the root cause, each evidence quote with the tool it came from, and the proposed fix as YAML, then one line with the run's tool calls, tokens, time and cost. Exit code 0 means a diagnosis was submitted, 1 that the agent didn't submit one, 2 a setup problem. Every run is also appended to `runs/runs.jsonl` with the namespace, prompt version and the full trace.
+
 ## Progress
 
 Milestones 1–3 are the MVP. Each milestone ends in something that runs and is committed.
@@ -84,8 +97,8 @@ Milestones 1–3 are the MVP. Each milestone ends in something that runs and is 
 - [x] `Diagnosis` Pydantic model and the `submit_diagnosis` tool
 - [x] Loop calling tools through the MCP client, with the tool-call cap and a required submission
 - [x] System prompt with the triage order (pods, events, logs, config, permissions)
-- [ ] Every run logged to JSON lines: tool calls, tokens, latency, cost
-- [ ] CLI: `triage --namespace demo-crashloop` prints a readable report
+- [x] Every run logged to JSON lines: tool calls, tokens, latency, cost
+- [x] CLI: `triage --namespace demo-crashloop` prints a readable report
 - [x] Evidence quotes checked against the real tool output
 - [ ] At least 4 of 6 scenarios right by hand; misses noted
 

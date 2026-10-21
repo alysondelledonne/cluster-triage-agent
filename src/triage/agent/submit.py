@@ -10,6 +10,7 @@ correct the call.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from pydantic import ValidationError
@@ -34,11 +35,22 @@ class SubmissionError(ValueError):
 
 def _inline_refs(schema: dict[str, Any]) -> dict[str, Any]:
     """Pydantic puts nested models under $defs and points at them with $ref. Some model
-    APIs reject or mishandle refs in tool schemas, so replace each ref with its definition."""
+    APIs reject or mishandle refs in tool schemas, so replace each ref with its definition.
+
+    A nullable object comes out as `anyOf: [object, null]`. On its first real run Claude
+    answered that with a JSON-encoded string, so it is rewritten as the object itself
+    with `type: ["object", "null"]` (DECISIONS.md 029)."""
     defs = schema.get("$defs", {})
 
     def resolve(node: Any) -> Any:
         if isinstance(node, dict):
+            options = node.get("anyOf")
+            if isinstance(options, list) and len(options) == 2 and {"type": "null"} in options:
+                (other,) = [o for o in options if o != {"type": "null"}]
+                target = resolve(other)
+                if target.get("type") == "object":
+                    extra = {k: resolve(v) for k, v in node.items() if k != "anyOf"}
+                    return {**target, **extra, "type": ["object", "null"]}
             if "$ref" in node:
                 target = resolve(defs[node["$ref"].split("/")[-1]])
                 extra = {k: resolve(v) for k, v in node.items() if k != "$ref"}
@@ -64,16 +76,50 @@ def _where(loc: tuple[int | str, ...]) -> str:
     return ".".join(str(part) for part in loc) or "(whole submission)"
 
 
+# Fields that hold an object or a list, and what each should look like.
+_STRUCTURED = {
+    "affected_resource": "an object with kind and name",
+    "evidence": "a list of objects with tool and quote",
+    "proposed_fix": "an object with explanation and yaml",
+}
+
+
+def _decode_strings(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Accept an object or list the model sent as a JSON-encoded string.
+
+    Models sometimes serialise a nested field instead of sending it as JSON structure
+    (Claude Haiku did on its first real run). If the string starts with a JSON object
+    or list, use that; any text after it is dropped, and a field the model folded into
+    that text shows up as missing, so it is reported and can be resent.
+    """
+    out = dict(arguments)
+    for key in _STRUCTURED:
+        value = out.get(key)
+        if isinstance(value, str) and value.lstrip()[:1] in ("{", "["):
+            try:
+                decoded, _ = json.JSONDecoder().raw_decode(value.lstrip())
+            except ValueError:
+                continue
+            if isinstance(decoded, dict | list):
+                out[key] = decoded
+    return out
+
+
 def parse_submission(arguments: dict[str, Any]) -> Diagnosis:
     """The model's tool arguments as a Diagnosis, or a SubmissionError saying what to fix."""
+    arguments = _decode_strings(arguments)
     try:
         return Diagnosis.model_validate(arguments)
     except ValidationError as err:
         problems = []
         for e in err.errors():
-            # Pydantic prefixes a custom validator's message with "Value error, ".
-            message = str(e["msg"]).removeprefix("Value error, ")
-            problems.append(f"- {_where(e['loc'])}: {message}")
+            where = _where(e["loc"])
+            if where in _STRUCTURED and isinstance(e.get("input"), str):
+                message = f"send {_STRUCTURED[where]}, not a string"
+            else:
+                # Pydantic prefixes a custom validator's message with "Value error, ".
+                message = str(e["msg"]).removeprefix("Value error, ")
+            problems.append(f"- {where}: {message}")
         raise _rejected(problems) from err
 
 

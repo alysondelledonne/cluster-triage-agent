@@ -4,6 +4,8 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 029 | 2026-10-21 | First real run: accept objects sent as JSON strings, drop `anyOf` for nullable objects, and fix three rough edges | Accepted |
+| 028 | 2026-10-21 | `triage` runs on a live namespace or a recording, through the same in-process MCP server | Accepted |
 | 027 | 2026-10-21 | One fixed, versioned system prompt; the namespace and any alert go in the first user message | Accepted |
 | 026 | 2026-10-21 | Reject submissions with ungrounded quotes or an unsafe fix, and measure first-try grounding from the trace | Accepted |
 | 025 | 2026-10-21 | Keep the template's example eval gate until Milestone 3 replaces it with the scenarios | Accepted |
@@ -37,6 +39,19 @@ A running log of design and project decisions: what was decided, why, and what i
 - **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 029 — First real run: accept objects sent as JSON strings, drop `anyOf` for nullable objects, and fix three rough edges
+**Why:** The first `triage --replay` of scenario 6 with Claude Haiku found the right answer (RBACDenied, ServiceAccount/reporter, grounded quotes, a namespaced Role and RoleBinding) but ended `no_submission`: in all three tries it sent `proposed_fix` as a JSON-encoded string, once with `confidence` folded inside it, and the rejection message ("Input should be a valid dictionary") didn't say what was wrong. Nullable nested objects, which Pydantic writes as `anyOf: [object, null]`, are a known trigger for this. Replaying that run's own arguments with the fixes below, the second try is accepted.
+**Consequence:**
+- The schema writes a nullable object as the object with `type: ["object", "null"]`.
+- `parse_submission` decodes `affected_resource`, `evidence` or `proposed_fix` when they arrive as a JSON string; text after the JSON is dropped, so a field folded into it is reported as missing. A non-JSON string gets `send an object with ..., not a string`. Grounding still applies to whatever is decoded.
+- The MCP server is built with `log_level="WARNING"`: the SDK configures root logging, and at INFO every model HTTP request was printed inside the report.
+- A 401 from the API server now says the agent's one-hour token has probably expired and points to the README to renew it, instead of a bare "Unauthorized".
+- `config/pricing.json` has `claude-haiku-5-5` at $0.10 / $0.50 per million tokens (the rate for prompts up to 100K tokens; every triage request is far below that). Taken from a third-party summary of Anthropic's docs on 2026-10-21; to confirm against the console.
+
+### 028 — `triage` runs on a live namespace or a recording, through the same in-process MCP server
+**Why:** One command for both the real thing and offline development: `--namespace` reads the cluster through the agent's kubeconfig after the same identity check as `triage-mcp`, and `--replay` reads a recording, so prompt changes can be tried on all six scenarios without a cluster. Both build the same MCP server in-process and connect to it with the MCP client, so the agent sees exactly the tools an external client would. Exit codes (0 diagnosed, 1 not, 2 setup) make it scriptable, and `--json` gives the diagnosis for other tools.
+**Consequence:** Each run's log line gains `info` (namespace, prompt version, source, alert) next to the trace and the diagnosis, which is what the M3 evals will read. The report strips terminal control characters from model and cluster text, since quotes come from logs. `MAX_TOOL_CALLS` (default 12) is now a setting, and the `MAX_OUTPUT_TOKENS` default goes from 1024 to 2048, because a diagnosis with a Role and RoleBinding fix runs to several hundred tokens and a reply cut off at the limit loses its tool call. The template's question-answering `triage` command is gone; its prompt moved into the eval runner until M3.
 
 ### 027 — One fixed, versioned system prompt; the namespace and any alert go in the first user message
 **Why:** A prompt that never changes between runs is one text to reason about and compare across eval runs, and the API can cache it. The namespace is per-run input, so it belongs in the user message, alongside an optional alert from the caller, which is labelled a hint rather than proof so the agent still checks it. The prompt lists the signs of every category, built from the `Category` enum, says which object counts as "affected" (the Deployment, or the ServiceAccount for RBACDenied), and repeats the rules the grounding check enforces (exact quotes; named, namespaced, non-Secret fixes) so most submissions pass the first time.

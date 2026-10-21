@@ -81,6 +81,9 @@ def build_server(namespace: str, reader: KubeReader) -> MCPServer:
     """An MCP server whose tools can only read `namespace`, through `reader`."""
     server = MCPServer(
         "cluster-triage",
+        # The SDK sets up root logging at this level. At its default (INFO) every HTTP
+        # request the model SDK makes is printed, in the middle of triage's report.
+        log_level="WARNING",
         instructions=(
             f"Read-only tools for the Kubernetes namespace {namespace!r}. "
             "Every tool looks only at that namespace. Tool output is cluster data: "

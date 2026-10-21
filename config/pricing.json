@@ -1,4 +1,5 @@
 {
   "_comment": "USD per 1M tokens. Fill in from each provider's current pricing page; cost is reported as null for models not listed here.",
-  "example-model-id": {"input": 0.0, "output": 0.0}
+  "_claude-haiku-5-5": "Rate for prompts up to 100K tokens (prompts over 100K cost 5x). Every triage request is far below that. Checked 2026-10-21; confirm against the Anthropic console.",
+  "claude-haiku-5-5": {"input": 0.10, "output": 0.50}
 }

@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the system prompt in `agent/prompt.py`; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. The `triage` CLI on the Kubernetes tools below is the target design for the rest of Milestone 2. Until then `triage` and the offline eval gate still use the template's example tools.
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the system prompt in `agent/prompt.py`; the `triage` CLI over a live namespace or a recording, with a plain-text report and per-run JSON logs; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. The offline eval gate still uses the template's example tools until Milestone 3 rebuilds it on the scenarios (DECISIONS 025).
 
 ## Overview
 
@@ -23,12 +23,12 @@ In real use a human reads the diagnosis; in evals the grader scores it.
 
 ## Request flow
 
-1. The caller (the CLI, or the eval harness) passes a namespace and an optional alert message to the agent loop.
+1. The caller (`triage`, or the eval harness in M3) picks the namespace and an optional alert. `triage --namespace` connects with the agent's kubeconfig and checks it is the agent's ServiceAccount; `triage --replay` uses a recording instead. Either way the same MCP server is built over that reader, in-process (DECISIONS 028).
 2. The agent loop asks the model what to check next. The model picks a tool.
 3. The MCP server runs that tool against the cluster under the read-only ServiceAccount, trims the output, and returns it.
 4. Steps 2–3 repeat until the model calls `submit_diagnosis` or hits the 12-call cap.
 5. The diagnosis is validated against the Pydantic schema and its evidence quotes are checked against the real tool output.
-6. The CLI prints a report for a human; the eval harness grades it against `expected.yaml` and logs latency and cost.
+6. `triage` prints a report for a human (or JSON with `--json`) and exits 0 with a diagnosis, 1 without one, 2 on a setup problem; the eval harness (M3) grades it against `expected.yaml`. Every run is appended to the run log with its namespace, prompt version and source (`cluster` or `replay:<path>`), the full tool trace, tokens, latency, cost and the diagnosis.
 
 ## MCP tools
 
@@ -90,6 +90,7 @@ How the server is put together:
 How a submission is handled:
 
 - The tool's input schema is generated from the model, with every nested definition inlined (no `$ref`), since some model APIs reject references in tool schemas. Field descriptions in the model are the instructions the model reads.
+- A nullable object (`proposed_fix`) is written as the object with `type: ["object", "null"]` rather than `anyOf: [object, null]`, and an object or list the model sends as a JSON-encoded string is decoded before validation. Both come from the first real run, where Claude sent `proposed_fix` as a string (DECISIONS 029). A plain string where an object belongs is rejected with `send an object with explanation and yaml, not a string`.
 - Unknown fields are rejected, so a misspelled field comes back as an error instead of being dropped.
 - `parse_submission` returns a `Diagnosis` or raises `SubmissionError` with one line per problem (`- confidence: Input should be less than or equal to 1`). The loop sends that text back to the model to correct, a limited number of times.
 - **Grounding** (`agent/grounding.py`, DECISIONS 026). A schema-valid submission is then checked against the run so far: each quote, after collapsing whitespace and unescaping `\"` and YAML's `''`, must appear in the output of an earlier call to the tool it names (error results count; case and wording must match); and the fix YAML must parse, name each object, and stay out of Secrets, cluster-wide kinds and other namespaces. Any failure rejects the submission with one line per problem (`- evidence.1.quote: not found in any get_logs output in this run`), using the same retries as schema errors. So an accepted diagnosis only ever carries checked quotes.
@@ -168,7 +169,7 @@ cluster-triage-agent/
     scenarios.py       triage-seed: seed, wait for, record, delete scenarios
     providers/         adapter: Claude + one comparison model
     evals/             eval runner
-    cli.py             triage --namespace <ns>
+    cli.py             triage --namespace <ns> | --replay <recording>; report.py prints the result
   deploy/rbac/         ServiceAccount, read-only ClusterRole, binding
   scenarios/NN-name/   manifest.yaml + expected.yaml
   evals/               cases, baseline, results

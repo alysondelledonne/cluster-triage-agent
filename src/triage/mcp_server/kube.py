@@ -16,6 +16,7 @@ prints), so the trimming code and the test fixtures share one format.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 
 from kubernetes import client, config
@@ -33,6 +34,9 @@ Kind = Literal[
 ]
 
 Obj = dict[str, Any]
+
+# Where the README's setup writes the agent's ServiceAccount kubeconfig.
+DEFAULT_AGENT_KUBECONFIG = Path.home() / ".kube" / "triage-agent.yaml"
 
 
 def service_account_subject(namespace: str, name: str) -> tuple[str, list[str]]:
@@ -86,6 +90,12 @@ class KubeReader(Protocol):
 
 def _message(err: client.ApiException) -> str:
     """The API server's own message from an error body, e.g. 'pods "x" not found'."""
+    if err.status == 401:
+        # Almost always the agent's one-hour token expiring.
+        return (
+            "Unauthorized: the API server rejected this kubeconfig's token. If it is the "
+            "agent's one-hour token, renew it with the set-credentials command in the README."
+        )
     try:
         return str(json.loads(err.body or "")["message"])
     except (ValueError, KeyError, TypeError):

@@ -44,6 +44,8 @@ Design doc: see "cluster-triage-agent: Design & Milestones" (milestones M0–M4)
 - Offline eval gate (what CI runs): `uv run triage-eval --provider fake --gate`
 - Real evals (call model APIs, cost money; run only when asked): `uv run triage-eval --provider anthropic --repeats 3`
 - Local cluster: `kind create cluster --name triage` / `kind delete cluster --name triage`
+- Diagnose (calls the model, costs a little): `uv run triage --namespace <ns>` or
+  `uv run triage --replay tests/fixtures/scenarios/NN-name/recording.json` (add `--json` for JSON)
 - MCP server: `uv run triage-mcp --namespace <ns> --kubeconfig ~/.kube/triage-agent.yaml`
   (refuses to start unless connected as the agent's ServiceAccount; see README)
 - Scenarios: `uv run triage-seed list | apply <n> | delete <n> | check | record` (writes to the
@@ -62,9 +64,9 @@ Now:
   and fixes against the run, `prompt.py` the system prompt (bump `PROMPT_VERSION` when it changes)
 - `src/triage/mcp_server/` `kube_server.py` the read-only Kubernetes MCP server (`triage-mcp`), `kube.py`
   the cluster reader, `trim.py` output trimming, `replay.py` record and replay; `server.py` is the
-  template's example server, still used by `triage` and the eval gate until M3
+  template's example server, still used by the eval gate until M3
 - `src/triage/evals/` eval runner; data in `evals/` (cases, baseline, results)
-- `src/triage/cli.py` the `triage` command
+- `src/triage/cli.py` the `triage` command (live namespace or `--replay`), `agent/report.py` its report
 - `src/triage/models.py` shared types: `Category`, `ResourceRef`, and `Diagnosis` (what the agent returns)
 - `src/triage/scenarios.py` the `triage-seed` command: seed, wait for, record and delete scenarios
 - `scenarios/NN-name/` `manifest.yaml` (breaks something) + `expected.yaml` (correct answer)
@@ -74,7 +76,7 @@ Now:
   `tests/fixtures/scenarios/` recorded per scenario and replayed by `mcp_server/replay.py`
 
 Coming in M2–M3:
-- `src/triage/cli.py` `triage --namespace <ns>` on the Kubernetes tools; eval gate on the scenarios
+- `src/triage/evals/` the eval gate on the six scenarios (replayed) instead of the calculator cases
 
 ## Conventions
 - Python 3.12, type hints everywhere, Pydantic for anything crossing a boundary.

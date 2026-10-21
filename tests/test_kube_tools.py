@@ -312,3 +312,20 @@ def test_main_refuses_to_start_under_the_wrong_identity(
 def test_main_requires_a_namespace() -> None:
     with pytest.raises(SystemExit):
         main([])
+
+
+def test_an_unauthorized_token_gets_a_hint_to_renew_it() -> None:
+    from kubernetes.client import ApiException
+
+    from triage.mcp_server.kube import _message
+
+    message = _message(ApiException(status=401, reason="Unauthorized"))
+    assert message.startswith("Unauthorized")
+    assert "renew" in message and "README" in message
+
+
+def test_building_the_server_leaves_logging_quiet() -> None:
+    # The MCP SDK configures root logging at its log level; at INFO every HTTP request
+    # the model SDK makes was printed in the middle of the report.
+    server = build_server(NAMESPACE, FakeReader())
+    assert server.settings.log_level == "WARNING"
