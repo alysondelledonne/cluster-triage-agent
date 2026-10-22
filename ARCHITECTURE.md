@@ -84,7 +84,7 @@ How the server is put together:
 | `affected_resource` | `{kind, name}` | |
 | `root_cause` | One or two plain-English sentences | 10–600 characters |
 | `evidence` | List of `{tool, quote}`; `tool` is one of the five MCP tools; each quote must appear in the output of an earlier call to that tool in the run | 1–8 items, quotes 3–500 characters |
-| `proposed_fix` | `{explanation, yaml}`: YAML a person could `kubectl apply`; each document names `apiVersion`, `kind` and `metadata.name`, stays in the run's namespace, and is never a Secret or cluster-wide object | required unless `category` is Unknown; YAML up to 5,000 characters |
+| `proposed_fix` | `{explanation, yaml}`: YAML a person could `kubectl apply`; each document names `apiVersion`, `kind` and `metadata.name`, stays in the run's namespace, and is never a Secret or cluster-wide object | required unless `category` is Unknown; YAML up to 5,000 characters; a fix with blank YAML counts as no fix (DECISIONS 041) |
 | `confidence` | 0 to 1 | |
 
 How a submission is handled:

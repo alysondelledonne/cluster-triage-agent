@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 041 | 2026-10-22 | A fix with blank YAML counts as no fix, so Unknown passes and nothing invents a placeholder | Accepted |
 | 040 | 2026-10-22 | Build 039: the forced turn requires `submit_diagnosis`; `cap_rate` and `first_try_grounding` fixed; rerun the "before" as Run 3 | Accepted |
 | 039 | 2026-10-22 | Run 2 (the "before"): Haiku 18/18, Grok 15/18; require the call on the forced turn and fix two metrics before prompt version 2 | Proposed, accepted in 040 |
 | 038 | 2026-10-21 | Fix the two measurement flaws from Run 1: unescape `\n` in grounding; recordings hold the full namespace inventory | Accepted |
@@ -51,6 +52,10 @@ A running log of design and project decisions: what was decided, why, and what i
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 041 — A fix with blank YAML counts as no fix
+**Why:** The smoke test for 040 (both models at `MAX_TOOL_CALLS=1` on scenario 6) showed both APIs accept the required tool call, and showed a new problem. Grok's forced submission (run `74020f9e8c67`) was Unknown with `proposed_fix: {explanation, yaml: ""}` instead of null. The schema's message, "String should have at least 1 character", led it to resubmit with a placeholder `ConfigMap` named `dummy`, which every check passed. A placeholder fix is worse than none: a person might apply it. With 040 requiring a submission on every capped run, Unknown with no fix becomes a more common answer, so this matters before Run 3.
+**Consequence:** `Diagnosis` treats a `proposed_fix` whose YAML is blank as null before validating. Unknown then passes with no fix, and any other category gets "required unless category is Unknown" instead of the character-count message. The tool schema the model sees is unchanged, so this doesn't change the prompt. Placeholder fixes in general (a real-looking object that changes nothing) aren't detected; M4's dry-run check is where fix validity gets tested.
 
 ### 040 — Build 039: the forced turn requires `submit_diagnosis`; `cap_rate` and `first_try_grounding` fixed; rerun the "before" as Run 3
 **Why:** Approved on 2026-10-22. Settles 039's open question in favour of a Run 3: Milestone 3 asks for one change with a before and after, and with these fixes in place a rerun on prompt version 1 means the prompt version 2 comparison changes only the prompt. The alternative, one run for both, saves about $0.55 but leaves the loop fix and the prompt change to be told apart from traces.

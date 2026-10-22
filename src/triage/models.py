@@ -101,6 +101,17 @@ class Diagnosis(BaseModel):
         ge=0, le=1, description="How sure you are, from 0 to 1. Below 0.5 means a guess."
     )
 
+    @field_validator("proposed_fix", mode="before")
+    @classmethod
+    def empty_fix_means_no_fix(cls, fix: object) -> object:
+        # A fix whose YAML is blank is no fix. Treating it as null lets Unknown through
+        # and gives a real category the "required" message below, instead of "at least
+        # 1 character", which once led a model to invent a placeholder object to pass
+        # (DECISIONS.md 041). The schema the model sees is unchanged.
+        if isinstance(fix, dict) and isinstance(fix.get("yaml"), str) and not fix["yaml"].strip():
+            return None
+        return fix
+
     @field_validator("proposed_fix")
     @classmethod
     def fix_required_unless_unknown(

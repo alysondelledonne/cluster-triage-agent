@@ -93,6 +93,24 @@ def test_unknown_may_come_without_a_fix() -> None:
     assert d.proposed_fix is None
 
 
+@pytest.mark.parametrize("yaml_text", ["", "   \n"])
+def test_an_empty_fix_on_unknown_means_no_fix(yaml_text: str) -> None:
+    # Smoke test 74020f9e8c67 (DECISIONS.md 041): Grok sent Unknown with an empty fix,
+    # was told the YAML needed a character, and invented a placeholder ConfigMap.
+    empty = {"explanation": "Nothing to fix yet.", "yaml": yaml_text}
+    d = parse_submission({**valid(), "category": "Unknown", "proposed_fix": empty})
+    assert d.proposed_fix is None
+
+
+def test_an_empty_fix_on_a_real_category_says_a_fix_is_needed() -> None:
+    empty = {"explanation": "x", "yaml": ""}
+    with pytest.raises(SubmissionError) as err:
+        parse_submission({**valid(), "proposed_fix": empty})
+    message = str(err.value)
+    assert "- proposed_fix: required unless category is Unknown" in message
+    assert "at least 1 character" not in message
+
+
 def test_evidence_and_fix_have_sensible_limits() -> None:
     too_many = [{"tool": "get_logs", "quote": f"line {i}"} for i in range(9)]
     with pytest.raises(SubmissionError, match="evidence"):
