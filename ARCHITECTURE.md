@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the system prompt in `agent/prompt.py`; the `triage` CLI over a live namespace or a recording, with a plain-text report and per-run JSON logs; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. `triage-eval` grades the agent on the six recorded scenarios, with an offline golden-model gate in CI. The template's calculator example is gone (DECISIONS 035).
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the system prompt in `agent/prompt.py`; the `triage` CLI over a live namespace or a recording, with a plain-text report and per-run JSON logs; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. `triage-eval` grades the agent on the six recorded scenarios, with an offline golden-model gate in CI, and three GitHub Actions workflows run the checks, the kind scenarios and the live evals (DECISIONS 045). Milestones 0–3 are done (2026-10-22). Planned for Milestone 4: a dry-run and recovery check for fixes, NetworkPolicy and red-herring scenarios, a log-injection scenario, and Phoenix tracing. The template's calculator example is gone (DECISIONS 035).
 
 ## Overview
 
@@ -167,7 +167,7 @@ Each scenario runs 3 times per model, replayed from its recording so every model
 
 Three workflows (DECISIONS 045). All have a read-only `GITHUB_TOKEN`, check out without keeping credentials, install with `uv sync --locked`, and pin every action to a commit.
 
-- **`ci.yml`**, on every push to `main` and every PR: ruff, shellcheck on `scripts/`, mypy, pytest and the offline gate. No secrets. `tests/conftest.py` makes any connection or name lookup for a host other than this machine fail during tests, so the rule that tests never call a model or need a cluster is enforced, not assumed.
+- **`ci.yml`**, on every push to `main` and every PR: ruff, shellcheck on `scripts/`, mypy, pytest and the offline gate. No secrets. `tests/conftest.py` makes any connection or name lookup for a host other than this machine fail during tests, so the rule that tests never call a model or need a cluster is enforced, not assumed. A second job, `secrets`, checks out the whole history and runs gitleaks v8.30.1 (the release binary, verified against its SHA-256) over every commit; known false positives are listed by fingerprint in `.gitleaksignore`. The same gitleaks version runs as a pre-commit hook on staged changes (DECISIONS 048).
 - **`kind.yml`**, by hand and weekly: a kind cluster on the same Kubernetes version as the committed recordings (v1.37.0, node image pinned by digest), the RBAC from `deploy/rbac/`, the agent's kubeconfig from `scripts/agent-kubeconfig.sh`, then `triage-seed record` for all six scenarios. The recording tests, the CLI and eval tests and the offline gate then run on the fresh recordings, and the run summary shows how they differ from the committed ones; the recordings are uploaded, never committed. An optional input diagnoses each seeded namespace live with one model; its keys are only given to that step.
 - **`eval-live.yml`**, by hand only: `triage-eval` on the committed recordings with the chosen providers, repeats and scenarios. A first step checks the inputs, and that each chosen provider has its key and model, before anything is spent. Inputs reach the shell through environment variables only. Tables go to the run summary; `evals/results/` and the run log are uploaded as an artifact. It never commits.
 
@@ -192,6 +192,7 @@ cluster-triage-agent/
   evals/               cases, baseline, results
   tests/               offline unit tests; fixtures/kube (hand-written), fixtures/scenarios (recorded)
   scripts/             agent-kubeconfig.sh: the agent's kubeconfig (token only)
+  docs/                demo.tape (VHS script) and the demo.gif it records
   .github/workflows/   ci.yml (every push and PR), kind.yml (manual + weekly), eval-live.yml (manual)
   .github/dependabot.yml  weekly updates for the pinned actions
 ```

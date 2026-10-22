@@ -4,6 +4,8 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 048 | 2026-10-22 | Scan for secrets with gitleaks: the whole history in CI on every push, staged changes in a pre-commit hook | Accepted |
+| 047 | 2026-10-22 | The README is rewritten for a stranger, the demo GIF is recorded from a VHS tape, and Milestone 3 is done | Accepted |
 | 046 | 2026-10-22 | All three workflows have passed a first run; Run 5 (on GitHub) repeats Run 4's 18/18; Grok's event-quote habit noted for after M3 | Accepted |
 | 045 | 2026-10-22 | CI: three workflows (every PR offline; kind manual + weekly; live evals manual), actions pinned to commits, tests can't reach the network | Accepted |
 | 044 | 2026-10-22 | Run 4 (the "after"): both models 18/18; prompt version 2 stays; the Milestone 3 "one change" is done | Accepted |
@@ -56,6 +58,23 @@ A running log of design and project decisions: what was decided, why, and what i
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 048 — Scan for secrets with gitleaks: the whole history in CI on every push, staged changes in a pre-commit hook
+**Why:** Before the repo goes public, its whole history has to be free of secrets, since a key deleted in a later commit is still published. A one-off scan with gitleaks v8.30.1 on 2026-10-22 covered all 25 commits and found two false positives, both from the generic API-key rule: the deliberately fake JWT that tests the recordings' secret check (`tests/test_replay.py`; it decodes to `{"sub":"x"}` and the word "signature") and a pod name in a hand-written fixture (`tests/fixtures/kube/pods.json`). Two automatic checks keep it that way, chosen 2026-10-22: CI on every push and PR, and a hook before each commit. The existing `detect-private-key` hook and `check_no_secrets` on recordings catch narrower cases.
+**Consequence:**
+- `.gitleaksignore` lists the two false positives by fingerprint (commit, file, rule, line), so a new finding anywhere, including a new copy of the same fake token, still fails.
+- `ci.yml` gains a `secrets` job: a full-history checkout (`fetch-depth: 0`), the gitleaks v8.30.1 release binary checked against its published SHA-256, then `gitleaks git` over every commit. A binary rather than `gitleaks-action`, to keep the pinning used everywhere else and avoid that action's licence-key rule for organisations. Dependabot doesn't update a version in a `run` step, so a newer gitleaks is a deliberate edit of `VERSION` and `SHA256`.
+- `.pre-commit-config.yaml` gains gitleaks' own hook, pinned to the v8.30.1 commit, which scans staged changes. pre-commit builds it with Go on the first run (a minute or two), so it needs no Homebrew install. `uv run pre-commit install` enables all the hooks, and the README's runbook now says so.
+- Verified on 2026-10-22: the CI step's install and scan, run as written, passes on the current history, and a throwaway copy with a fake Anthropic key committed fails with exit 1.
+- When the repo is public, GitHub's own secret scanning and push protection should be switched on too (Settings → Advanced Security). They're free for public repositories and block known provider keys at push time.
+
+### 047 — The README is rewritten for a stranger, the demo GIF is recorded from a VHS tape, and Milestone 3 is done
+**Why:** Milestone 3's last item was a README a stranger can follow, with the results table, a runbook, known failure modes and "How I built this with Claude Code", plus a demo GIF. The README had grown as a progress log, so a newcomer met the milestone history before the results. Approved on 2026-10-22 ("perform that last tick for milestone 3").
+**Consequence:**
+- The README now runs: demo, results (Runs 4 and 5, the current prompt, with what each column means and how to reproduce them), why this project, how it works (a Mermaid diagram), a runbook from a clean clone (offline; one recorded diagnosis; a live kind cluster; the tools from Claude; evals; re-recording; clean-up; troubleshooting from the problems actually hit while building it), CI, known failure modes (what the models get wrong, what the agent can't do yet, what the evals don't show), how it was built, then the progress log unchanged.
+- The demo is `docs/demo.tape`, a [VHS](https://github.com/charmbracelet/vhs) script that records `docs/demo.gif` of `triage --replay` on scenario 6. A tape rather than a screen recording because anyone can re-record it identically after a change. It makes one real model call (about $0.002), so the GIF is real output, not the fake model. VHS is a tool for recording, installed on the machine that records, not a project dependency.
+- Milestone 3 is marked done 2026-10-22: its "Done when" (a stranger can clone, follow the README and reproduce the results table) was shown by Run 5, which reproduced the table from the `eval-live.yml` workflow on a GitHub runner (046). The commit that marks it done must include `docs/demo.gif`.
+- CLAUDE.md's "Coming in M3" list is replaced by a pointer to M4. ARCHITECTURE's "Built so far" says what M4 plans.
 
 ### 046 — All three workflows have passed a first run; Run 5 (on GitHub) repeats Run 4's 18/18; Grok's event-quote habit noted for after M3
 **Why:** 045 said to tick the GitHub Actions item once `ci.yml` was green and each manual workflow had passed once. On 2026-10-22: `ci.yml` passed on a pull request (Dependabot's first PR, `chore(deps): bump …`); `kind.yml` passed by hand twice (runs 39828702303 and 39833628382; a third, 39835066851, was still running when this was written; about 3 minutes each, all six scenarios seeded, recorded and passing the recording tests and offline gate on GitHub's runner, live diagnosis skipped); `eval-live.yml` passed by hand (run 39835204120, 4.5 minutes, $0.50). That eval is Run 5 in evals/RESULTS.md: prompt version 2 again, both models 18/18, Haiku first-try grounding 1.0 at $0.0022 an incident, Grok 0.97 at $0.026. Grok's two quote rejections both joined an event's `type`, `reason` (and once `object`) and `message` lines into the one-line form `kubectl get events` prints; every Grok quote rejection since prompt version 2 but one has been this.

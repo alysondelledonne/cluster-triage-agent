@@ -42,6 +42,8 @@ Design doc: see "cluster-triage-agent: Design & Milestones" (milestones M0–M4)
 - Type check: `uv run mypy`
 - Tests: `uv run pytest`
 - Offline eval gate (what CI runs): `uv run triage-eval --provider fake --gate`
+- Secrets: `gitleaks git -v` scans the history (CI's `secrets` job does the same on every push);
+  `uv run pre-commit install` adds the gitleaks hook. False positives go in `.gitleaksignore` by fingerprint.
 - Real evals (call model APIs, cost money; run only when asked):
   `uv run triage-eval --provider anthropic --provider grok --repeats 3 --save`
 - Local cluster: `kind create cluster --name triage` / `kind delete cluster --name triage`
@@ -77,9 +79,9 @@ Now:
   API payloads, `tests/fixtures/scenarios/` recorded per scenario and replayed by `mcp_server/replay.py`
 - `scripts/agent-kubeconfig.sh` builds `~/.kube/triage-agent.yaml` (the agent's token only)
 - `.github/workflows/` `ci.yml` every push and PR, `kind.yml` manual + weekly, `eval-live.yml` manual
+- `docs/demo.tape` records `docs/demo.gif` with VHS (`vhs docs/demo.tape`; one real model call)
 
-Coming in M3:
-- README for a stranger: runbook, known failure modes, how it was built, demo GIF
+Milestones 0–3 are done (2026-10-22). Next is M4 (see the README's Progress section).
 
 ## Conventions
 - Python 3.12, type hints everywhere, Pydantic for anything crossing a boundary.
