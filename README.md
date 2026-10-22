@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 2 done (2026-10-21): `triage` diagnosed all six scenarios correctly with Claude Haiku, for about $0.002 a run (results below). Milestone 3 (evals, CI and README) is next.
+**Status:** Milestone 2 done (2026-10-21): `triage` diagnosed all six scenarios correctly with Claude Haiku, for about $0.002 a run (results below). Milestone 3 (evals, CI and README) in progress: evals will replay the recordings (DECISIONS 033) and compare Haiku with `grok-4.20-0309-non-reasoning` (DECISIONS 034); next is moving `triage-eval` onto the scenarios.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)

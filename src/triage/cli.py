@@ -23,6 +23,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import anthropic
+import openai
 from mcp.client import Client
 
 from .agent.loop import AgentResult, run_agent
@@ -38,6 +40,10 @@ from .providers import Provider, get_provider
 from .tracing import setup_tracing
 
 
+class ModelAPIError(RuntimeError):
+    """The model provider refused or failed a request (bad key, no credit, network)."""
+
+
 async def diagnose(
     namespace: str,
     reader: KubeReader,
@@ -50,23 +56,31 @@ async def diagnose(
     """One triage run: the read-only tools over `reader`, the triage prompt, and
     `submit_diagnosis` as the only way to finish."""
     server = build_server(namespace, reader)
+    failure: Exception
     async with Client(server) as client:  # in-memory MCP connection, same tools as triage-mcp
         tools = await tools_from_mcp(client)
-        return await run_agent(
-            provider,
-            SYSTEM_PROMPT,
-            task_message(namespace, alert),
-            tools,
-            run_log=settings.run_log,
-            finish=diagnosis_finish(namespace),
-            max_tool_calls=settings.max_tool_calls,
-            info={
-                "namespace": namespace,
-                "prompt_version": PROMPT_VERSION,
-                "source": source,
-                "alert": alert,
-            },
-        )
+        try:
+            return await run_agent(
+                provider,
+                SYSTEM_PROMPT,
+                task_message(namespace, alert),
+                tools,
+                run_log=settings.run_log,
+                finish=diagnosis_finish(namespace),
+                max_tool_calls=settings.max_tool_calls,
+                info={
+                    "namespace": namespace,
+                    "prompt_version": PROMPT_VERSION,
+                    "source": source,
+                    "alert": alert,
+                },
+            )
+        except (anthropic.APIError, openai.APIError) as err:
+            # Leave the MCP client's task group first: raised inside it, the error would
+            # surface wrapped in an ExceptionGroup with a long traceback.
+            failure = err
+    message = getattr(failure, "message", None) or str(failure)
+    raise ModelAPIError(f"({provider.name}/{provider.model}): {message}") from failure
 
 
 def _as_json(result: AgentResult, namespace: str) -> dict[str, Any]:
@@ -136,9 +150,12 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as err:
         return _fail(str(err))
 
-    result = asyncio.run(
-        diagnose(namespace, reader, provider, settings, alert=args.alert, source=source)
-    )
+    try:
+        result = asyncio.run(
+            diagnose(namespace, reader, provider, settings, alert=args.alert, source=source)
+        )
+    except ModelAPIError as err:
+        return _fail(f"the model API refused the request {err}")
     if args.json:
         print(json.dumps(_as_json(result, namespace), indent=2))
     else:

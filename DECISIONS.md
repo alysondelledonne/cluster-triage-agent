@@ -4,6 +4,8 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 034 | 2026-10-21 | Compare Claude Haiku with `grok-4.20-0309-non-reasoning` | Accepted |
+| 033 | 2026-10-21 | Evals replay the recorded scenarios; live runs are an optional check | Accepted |
 | 032 | 2026-10-21 | Scenario 1 waits for the BackOff event, not the CrashLoopBackOff container state | Accepted |
 | 031 | 2026-10-21 | Scenarios 1 and 3 break in a way their fix can repair | Accepted |
 | 030 | 2026-10-21 | Milestone 2 hand runs: 6 of 6 right; fix scenarios 1 and 3 and settle how fixes are applied before M4 | Accepted |
@@ -40,9 +42,16 @@ A running log of design and project decisions: what was decided, why, and what i
 ## Open questions
 
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
-- **Comparison model.** Grok (the portfolio plan's original default) or an OpenAI model. Decide in Milestone 3 when the second key is created (012).
 
 ---
+
+### 034 — Compare Claude Haiku with `grok-4.20-0309-non-reasoning`
+**Why:** Settles the open question from 012. Grok was the portfolio plan's original choice, and xAI's API is OpenAI-compatible, so the existing provider works unchanged. Of xAI's models, `grok-4.20-0309-non-reasoning` ($1.25 in / $2.50 out per million tokens under 200K) is the closest match to Haiku's fast, cheap tier; `grok-4.7` costs $2 / $6. One replay of scenario 6 on 2026-10-21 got it right (RBACDenied, ServiceAccount/reporter, 0.90) in 11 tool calls and 15.9s for about $0.049, against Haiku's 5 calls, 6.8s and $0.0027.
+**Consequence:** Setup is easy to get wrong, so `.env.example` spells it out: the key must be a "Grok Interface" key from console.x.ai's API Keys page, with prepaid credits on the same team; a key from the grok.com consumer app is rejected with "Incorrect API key provided". `config/pricing.json` has the model's price. `triage` now reports a refused model call as one line (`the model API refused the request (grok/<model>): ...`, exit code 2) instead of a traceback.
+
+### 033 — Evals replay the recorded scenarios; live runs are an optional check
+**Why:** Milestone 3 is done when a stranger can reproduce the results table. Replaying the six recordings needs only the repo and an API key, gives every model the same cluster output, and costs cents; seeding a cluster for every run needs kind, takes minutes per scenario, and lets the cluster's timing change what the agent sees. The trade-off is that the agent can only see what was recorded, so the evals count calls the recording doesn't have; if that number grows, the recorder's sweep (022) is missing something.
+**Consequence:** `triage-eval` will run the scenarios from `tests/fixtures/scenarios/` (step 1b). A live mode and an optional kind job in the manual workflow (step 4) check that recordings still match a real cluster. The offline gate no longer writes result files; the five committed from local gate runs of the template's fake model are removed, since they weren't real results.
 
 ### 032 — Scenario 1 waits for the BackOff event, not the CrashLoopBackOff container state
 **Why:** Seeding scenario 1 took 6 seconds the first time, then 84 to 164 seconds, then timed out at 180 seconds while re-recording for 031. The recordings show the container as `terminated: Error` rather than `waiting: CrashLoopBackOff` at the moment it was read, so the kubelet only sometimes reports the waiting state during back-off and a poll every 3 seconds can keep missing it. Exactly why wasn't pinned down. The kubelet's `BackOff` event ("Back-off restarting failed container") is emitted when back-off starts and stays in the event list, so polling can't miss it, and it means the same thing.

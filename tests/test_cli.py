@@ -241,3 +241,52 @@ def test_report_strips_terminal_control_characters() -> None:
     assert (
         safe("\x1b[2Jcleared \x1b[31mred\x07 ok\tthen\nnext") == "[2Jcleared [31mred ok\tthen\nnext"
     )
+
+
+# ---------- model API errors (DECISIONS.md 034) ----------
+
+
+class RefusingProvider:
+    """Fails like a real model API with a bad key."""
+
+    name = "grok"
+    model = "grok-test"
+
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+
+    def complete(self, system: str, messages: Any, tools: Any) -> Any:
+        raise self.error
+
+
+def _api_errors() -> list[Exception]:
+    import anthropic
+    import httpx2
+    import openai
+
+    request = httpx2.Request("POST", "https://api.example.test/v1/chat/completions")
+    return [
+        openai.APIError("Incorrect API key provided", request, body=None),
+        anthropic.APIError("invalid x-api-key", request, body=None),
+    ]
+
+
+@pytest.mark.parametrize("error", _api_errors(), ids=["openai-compatible", "anthropic"])
+def test_a_refused_api_call_is_one_clear_line(
+    error: Exception,
+    run_log: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "get_provider", lambda name, settings: RefusingProvider(error))
+    assert cli.main(["--replay", str(RECORDING)]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("triage: the model API refused the request (grok/grok-test): ")
+    assert getattr(error, "message", "") in err
+    assert err.count("\n") == 1, "one line, no traceback"
+
+
+def test_diagnose_raises_a_model_api_error(run_log: Path) -> None:
+    (error, _) = _api_errors()
+    with pytest.raises(cli.ModelAPIError, match="Incorrect API key"):
+        asyncio.run(cli.diagnose(NS, replay(), RefusingProvider(error), load_settings()))  # type: ignore[arg-type]

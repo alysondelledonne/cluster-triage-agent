@@ -189,7 +189,8 @@ def main(argv: list[str] | None = None) -> int:
     table = markdown_table(summaries)
     print(table)
 
-    if not args.no_save:
+    # The offline gate checks the pipeline; its fake-model numbers aren't results to keep.
+    if not args.no_save and not args.gate:
         out = EVAL_DIR / "results"
         out.mkdir(exist_ok=True)
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")

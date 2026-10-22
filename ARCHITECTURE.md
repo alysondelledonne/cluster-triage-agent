@@ -152,7 +152,7 @@ Unit tests, and later the offline agent runs and eval gate, never touch a cluste
 | Cost | Dollars per incident from token counts and `config/pricing.json` |
 | Tool calls | Average calls per incident, and how often the cap was hit |
 
-Each scenario runs 3 times per model. Unit tests and CI use recorded tool output in `tests/fixtures/` and never call a model or need a cluster; real evals run on demand.
+Each scenario runs 3 times per model, replayed from its recording so every model sees the same cluster output and anyone can rerun it without a cluster (DECISIONS 033). The models are `claude-haiku-5-5` and `grok-4.20-0309-non-reasoning` (DECISIONS 034). Unit tests and CI use recorded tool output in `tests/fixtures/` and never call a model or need a cluster; real evals run on demand. The scenario-based `triage-eval` is Milestone 3, step 1b; until then it still runs the template's calculator cases.
 
 ## Repo layout
 
