@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 2 done (2026-10-21): `triage` diagnosed all six scenarios correctly with Claude Haiku, for about $0.002 a run. Milestone 3 (evals, CI and README) in progress: `triage-eval` now grades the agent on the six recorded scenarios, with an offline golden-model gate in CI. Next: the real runs, Claude Haiku against `grok-4.20-0309-non-reasoning`, 3 per scenario.
+**Status:** Milestone 3 (evals, CI and README) in progress. First real eval (2026-10-21, 36 runs on the recorded scenarios): Claude Haiku 18/18 correct at $0.0022 an incident; `grok-4.20-0309-non-reasoning` 17/18 at $0.028. Full results and analysis in [evals/RESULTS.md](evals/RESULTS.md). Next: fix two measurement flaws the run exposed, then prompt version 2 with a before-and-after rerun (DECISIONS 037).
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -132,14 +132,23 @@ No misses. One run each is not a measurement; Milestone 3 runs each scenario 3 t
 ### Milestone 3: Evals, CI and README — ship and apply
 
 - [x] `run_evals`: for each scenario and model, seed, triage 3 times, grade, reset (`triage-eval`, replaying the recordings instead of seeding each run: DECISIONS 033)
-- [ ] Accuracy, evidence grounding, p50/p95 latency, cost per incident and tool calls in a results table
-- [ ] Claude vs the comparison model; which wins on accuracy, cost and speed
+- [x] Accuracy, evidence grounding, p50/p95 latency, cost per incident and tool calls in a results table
+- [x] Claude vs the comparison model; which wins on accuracy, cost and speed
 - [ ] One change made from the results, with before and after
 - [ ] GitHub Actions: checks on every PR; a manual workflow that spins up kind and runs the evals
 - [ ] README: results table, runbook, known failure modes, "How I built this with Claude Code"
 - [ ] Demo GIF of the CLI diagnosing a scenario
 
 **Done when:** a stranger can clone the repo, follow the README, and reproduce the results table.
+
+First real eval, 2026-10-21: prompt version 1, 3 runs per scenario per model, replayed from the recordings ($0.55 in total). Details, per-scenario numbers and every anomaly by run: [evals/RESULTS.md](evals/RESULTS.md).
+
+| model | accuracy | first-try grounding | tool calls / run | latency p50 / p95 | cost / incident |
+| --- | --- | --- | --- | --- | --- |
+| `claude-haiku-5-5` | 18/18 (1.00) | 1.00 | 3.9 | 6.1s / 8.4s | $0.0022 |
+| `grok-4.20-0309-non-reasoning` | 17/18 (0.94) | 0.92 | 5.3 | 5.0s / 15.4s | $0.028 |
+
+Haiku wins on accuracy, evidence and cost (about 13x cheaper); Grok is faster on simple scenarios but slower on the two hardest. Grok's one miss (scenario 5) had the right fix, but its submissions kept quoting lines joined together that aren't adjacent in the output, so none was accepted. The run also exposed two flaws in the measuring tools, `\n` escapes in grounding and objects missing from the recordings, which are fixed before the before-and-after for prompt version 2 (DECISIONS 037).
 
 ### Milestone 4: Make it stronger
 

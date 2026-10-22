@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 037 | 2026-10-21 | First real eval: Haiku 18/18, Grok 17/18; fix two measurement flaws, then prompt version 2 as the one change | Accepted |
 | 036 | 2026-10-21 | `triage-eval` grades replayed scenarios against `expected.yaml`; new gate metrics replace the template's | Accepted |
 | 035 | 2026-10-21 | Remove the template's calculator example and the loop's plain-text mode | Accepted |
 | 034 | 2026-10-21 | Compare Claude Haiku with `grok-4.20-0309-non-reasoning` | Accepted |
@@ -46,6 +47,13 @@ A running log of design and project decisions: what was decided, why, and what i
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 037 — First real eval: Haiku 18/18, Grok 17/18; fix two measurement flaws, then prompt version 2 as the one change
+**Why:** Run 1 (evals/RESULTS.md: commit `0c533fe`, prompt version 1, 3 runs per scenario per model, $0.55) gave Claude Haiku 18/18, first-try grounding 1.00, 3.9 tool calls and $0.0022 an incident; `grok-4.20-0309-non-reasoning` 17/18, 0.92, 5.3 calls and $0.028. Reading every anomaly by run ID showed three kinds of problem:
+- **Grok's quoting.** It joined non-adjacent lines into one quote, trimmed lines, and added notes inside quotes. Grounding (026) rightly rejected these; the scenario 5 miss came from resending the same joined quote after being told it wasn't found. Its diagnoses were all right.
+- **A grounding false negative.** A script quoted with real line breaks didn't match `describe` output that shows it as a YAML string with `\n` escapes. Same text, different escaping, like the `\"` case 026 already handles.
+- **A replay gap.** Grok asked to describe objects the recorder never read: Role and RoleBinding `reporter`, ConfigMap `api`, ServiceAccount `default` (6.2% of its calls). A real cluster answers "not found", or with the object for `default`; replay answered "not in this recording", which is less faithful and tells the model it is being evaluated.
+**Consequence:** Haiku stays the default model: it matched or beat Grok on every measure except p50 latency, at a thirteenth of the cost. Before the Milestone 3 "one change", the two measurement flaws are fixed so the before-and-after compares like with like: grounding treats `\n` and `\t` escapes as line breaks and tabs, and the recorder reads the namespace's built-in objects (the `default` ServiceAccount and the `kube-root-ca.crt` ConfigMap) so a recording holds everything `describe` can reach, letting replay answer anything else with the API's own "not found". The scenarios are then re-recorded and rerun as the "before". The one change is prompt version 2, aimed at the quoting failures: quote one line or part of a line exactly, never join lines or add notes, keep quotes short, and a rejection message that says the same. Run 1's results file is committed as the record.
 
 ### 036 — `triage-eval` grades replayed scenarios against `expected.yaml`; new gate metrics replace the template's
 **Why:** The evals should measure what matters for a diagnosis: the right category and object (with `also_accept` counting), whether the run ended in an accepted submission, and whether the first submission's evidence was real (first-try grounding, from the trace, since rejected quotes are corrected before a person sees them). Tool calls, cap hits, latency and cost show what it took; the share of calls the recording couldn't answer shows whether replay still stands in for the cluster (033). Runs go through the same `diagnose()` as `triage`, so the evals test the real path. The offline gate needs a model that gets every scenario right for free, so a scripted golden model follows each scenario's signal and quotes the real line it finds.

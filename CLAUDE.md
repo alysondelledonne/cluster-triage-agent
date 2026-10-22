@@ -65,7 +65,8 @@ Now:
 - `src/triage/mcp_server/` `kube_server.py` the read-only Kubernetes MCP server (`triage-mcp`), `kube.py`
   the cluster reader, `trim.py` output trimming, `replay.py` record and replay
 - `src/triage/evals/` `triage-eval`: replays the scenarios, grades against `expected.yaml`, golden-model
-  gate; `evals/baseline.json` gate minimums, `evals/results/` saved real runs
+  gate; `evals/baseline.json` gate minimums, `evals/results/` saved real runs, `evals/RESULTS.md` the
+  write-up of every real run (add a section for each new one)
 - `src/triage/cli.py` the `triage` command (live namespace or `--replay`), `agent/report.py` its report
 - `src/triage/models.py` shared types: `Category`, `ResourceRef`, and `Diagnosis` (what the agent returns)
 - `src/triage/scenarios.py` the `triage-seed` command: seed, wait for, record and delete scenarios

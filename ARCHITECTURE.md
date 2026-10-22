@@ -157,7 +157,7 @@ Unit tests, and later the offline agent runs and eval gate, never touch a cluste
 | `cost_per_incident_usd` | From token counts and `config/pricing.json`; unknown if any run's model has no price |
 | Fix validity (M4) | Patch passes a server-side dry run, then the pod becomes Ready after applying it |
 
-It prints a summary row per model and a scenario-by-model grid of correct runs (`2/3`). `--save` writes every run's row and the summaries to `evals/results/<time>-<models>.json` and the tables to `evals/results/latest.md`.
+It prints a summary row per model and a scenario-by-model grid of correct runs (`2/3`). Every real run is written up in `evals/RESULTS.md`: setup, tables, and what each anomaly turned out to be. `--save` writes every run's row and the summaries to `evals/results/<time>-<models>.json` and the tables to `evals/results/latest.md`.
 
 The offline gate (`triage-eval --provider fake --gate`, run in CI) uses a scripted golden model: per scenario it lists pods, reads events or logs where that scenario's signal shows, and submits the expected answer quoting the real signal line from the replayed output, with a minimal valid fix. It checks the harness, grading, grounding and gate end to end without a model or a cluster; `evals/baseline.json` holds its minimums (accuracy, submitted rate and first-try grounding, all 1.0).
 
