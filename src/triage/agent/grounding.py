@@ -21,7 +21,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from ..models import Diagnosis, Evidence
+from ..models import Diagnosis, Evidence, decode_json_strings
 from .loop import ToolRecord
 
 # Objects a fix must never touch: they reach beyond the run's namespace.
@@ -166,7 +166,8 @@ def submission_attempts(
         if rec.name != tool_name:
             continue
         try:
-            diagnosis = Diagnosis.model_validate(rec.arguments)
+            # Decoded as submit_diagnosis decodes it, so an accepted attempt is counted.
+            diagnosis = Diagnosis.model_validate(decode_json_strings(rec.arguments))
         except ValidationError:
             continue  # rejected by the schema before grounding was checked
         reports.append(check_diagnosis(diagnosis, trace[:i], namespace))

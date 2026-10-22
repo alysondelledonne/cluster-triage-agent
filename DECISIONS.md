@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 042 | 2026-10-22 | Run 3 (the "before"): Haiku 18/18, Grok 17/18; the evals' re-check decodes JSON-string fields; prompt version 2 proposed | Accepted (prompt version 2 proposed) |
 | 041 | 2026-10-22 | A fix with blank YAML counts as no fix, so Unknown passes and nothing invents a placeholder | Accepted |
 | 040 | 2026-10-22 | Build 039: the forced turn requires `submit_diagnosis`; `cap_rate` and `first_try_grounding` fixed; rerun the "before" as Run 3 | Accepted |
 | 039 | 2026-10-22 | Run 2 (the "before"): Haiku 18/18, Grok 15/18; require the call on the forced turn and fix two metrics before prompt version 2 | Proposed, accepted in 040 |
@@ -48,10 +49,22 @@ A running log of design and project decisions: what was decided, why, and what i
 
 ## Open questions
 
-- **Should scenario 1 accept ConfigError?** Its container exits because a required setting is missing, so ConfigError is a defensible reading; the scenario was written as CrashLoop (`expected.yaml`). Changing it would change the grading of past runs, so decide before M3's final results table.
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 042 — Run 3 (the "before"): Haiku 18/18, Grok 17/18; the evals' re-check decodes JSON-string fields; prompt version 2 proposed
+**Why:** Run 3 (evals/RESULTS.md: commit `b259251`, prompt version 1, $0.46) is the "before" for prompt version 2. Haiku 18/18, first-try grounding 0.99, $0.0024 an incident; Grok 17/18, 1.00, $0.023. No run hit the cap, so 040's required tool call wasn't exercised (the smoke test showed it works). The run exposed one more measurement bug: `submission_attempts` validated each submission without the JSON-string decoding `submit_diagnosis` applies (023), so Haiku's `b5a9e8e8cb69`, accepted with `proposed_fix` sent as a string, had no attempt to score and dropped out of the average.
+Across Runs 1–3 (54 runs per model), what still goes wrong, all with prompt version 1:
+- **Grok's quoting:** 5 runs with an ungrounded first try (joined, trimmed or annotated lines), 2 of them costing the run (Run 1 scenario 5, Run 2 scenario 1); none in Run 3.
+- **Scenario 1 as ConfigError:** Grok, once in Run 2 and once in Run 3. The prompt defines ConfigError as a container that never starts; here it starts and exits 1.
+- **Missing or extra fields:** Haiku, in 5 runs a submission left out `confidence` or `proposed_fix`, or added a field; each cost a retry, never a diagnosis.
+- **Over-exploring scenario 6:** Grok, 7–12 calls where Haiku uses 4–5, after the API's `not found` for the missing Role.
+**Consequence:** `decode_json_strings` and its field list move from `agent/submit.py` to `models.py`, and both `submit_diagnosis` and `submission_attempts` use them, so the evals read a submission exactly as the agent did. Run 3's saved figure stays as saved (0.988); RESULTS.md gives the corrected 0.989. Settles the scenario 1 open question: keep CrashLoop as the only accepted answer, since the prompt's own definitions decide it and accepting ConfigError would grade a misreading as right.
+**Proposed (waiting for approval): prompt version 2**, one prompt change aimed at the two failures that cost diagnoses, each traceable in the "after" run's traces by its own symptom:
+- Quotes: copy one line, or a contiguous part of one, exactly as shown; never join lines or fields, trim inside a line, add notes, or restyle YAML. The grounding rejection message says the same.
+- The CrashLoop/ConfigError line: "a container that starts and then exits, even because a setting is missing, is CrashLoop; ConfigError is only when Kubernetes can't create or start the container."
+Not in version 2: required-field reminders (they cost a turn, not a diagnosis, and the schema already enforces them) and an exploration budget for scenario 6 (a separate change with its own trade-off).
 
 ### 041 — A fix with blank YAML counts as no fix
 **Why:** The smoke test for 040 (both models at `MAX_TOOL_CALLS=1` on scenario 6) showed both APIs accept the required tool call, and showed a new problem. Grok's forced submission (run `74020f9e8c67`) was Unknown with `proposed_fix: {explanation, yaml: ""}` instead of null. The schema's message, "String should have at least 1 character", led it to resubmit with a placeholder `ConfigMap` named `dummy`, which every check passed. A placeholder fix is worse than none: a person might apply it. With 040 requiring a submission on every capped run, Unknown with no fix becomes a more common answer, so this matters before Run 3.

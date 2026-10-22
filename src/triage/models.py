@@ -8,8 +8,9 @@ descriptions become the tool's JSON schema, so they are written for the model.
 
 from __future__ import annotations
 
+import json
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
@@ -121,3 +122,35 @@ class Diagnosis(BaseModel):
         if fix is None and info.data.get("category") is not Category.UNKNOWN:
             raise ValueError("required unless category is Unknown")
         return fix
+
+
+# Diagnosis fields that hold an object or list, and how to describe each to the model.
+STRUCTURED_FIELDS = {
+    "affected_resource": "an object with kind and name",
+    "evidence": "a list of objects with tool and quote",
+    "proposed_fix": "an object with explanation and yaml",
+}
+
+
+def decode_json_strings(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Accept an object or list the model sent as a JSON-encoded string.
+
+    Used by `submit_diagnosis` and by the evals' re-check of each attempt
+    (agent/grounding.py), so both read a submission the same way (DECISIONS.md 042).
+
+    Models sometimes serialise a nested field instead of sending it as JSON structure
+    (Claude Haiku did on its first real run). If the string starts with a JSON object
+    or list, use that; any text after it is dropped, and a field the model folded into
+    that text shows up as missing, so it is reported and can be resent.
+    """
+    out = dict(arguments)
+    for key in STRUCTURED_FIELDS:
+        value = out.get(key)
+        if isinstance(value, str) and value.lstrip()[:1] in ("{", "["):
+            try:
+                decoded, _ = json.JSONDecoder().raw_decode(value.lstrip())
+            except ValueError:
+                continue
+            if isinstance(decoded, dict | list):
+                out[key] = decoded
+    return out

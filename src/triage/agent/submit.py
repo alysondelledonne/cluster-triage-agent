@@ -10,12 +10,11 @@ correct the call.
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from pydantic import ValidationError
 
-from ..models import Diagnosis
+from ..models import STRUCTURED_FIELDS, Diagnosis, decode_json_strings
 from ..providers.base import ToolSpec
 from .grounding import check_diagnosis
 from .loop import Finish, ToolRecord
@@ -76,46 +75,17 @@ def _where(loc: tuple[int | str, ...]) -> str:
     return ".".join(str(part) for part in loc) or "(whole submission)"
 
 
-# Fields that hold an object or a list, and what each should look like.
-_STRUCTURED = {
-    "affected_resource": "an object with kind and name",
-    "evidence": "a list of objects with tool and quote",
-    "proposed_fix": "an object with explanation and yaml",
-}
-
-
-def _decode_strings(arguments: dict[str, Any]) -> dict[str, Any]:
-    """Accept an object or list the model sent as a JSON-encoded string.
-
-    Models sometimes serialise a nested field instead of sending it as JSON structure
-    (Claude Haiku did on its first real run). If the string starts with a JSON object
-    or list, use that; any text after it is dropped, and a field the model folded into
-    that text shows up as missing, so it is reported and can be resent.
-    """
-    out = dict(arguments)
-    for key in _STRUCTURED:
-        value = out.get(key)
-        if isinstance(value, str) and value.lstrip()[:1] in ("{", "["):
-            try:
-                decoded, _ = json.JSONDecoder().raw_decode(value.lstrip())
-            except ValueError:
-                continue
-            if isinstance(decoded, dict | list):
-                out[key] = decoded
-    return out
-
-
 def parse_submission(arguments: dict[str, Any]) -> Diagnosis:
     """The model's tool arguments as a Diagnosis, or a SubmissionError saying what to fix."""
-    arguments = _decode_strings(arguments)
+    arguments = decode_json_strings(arguments)
     try:
         return Diagnosis.model_validate(arguments)
     except ValidationError as err:
         problems = []
         for e in err.errors():
             where = _where(e["loc"])
-            if where in _STRUCTURED and isinstance(e.get("input"), str):
-                message = f"send {_STRUCTURED[where]}, not a string"
+            if where in STRUCTURED_FIELDS and isinstance(e.get("input"), str):
+                message = f"send {STRUCTURED_FIELDS[where]}, not a string"
             else:
                 # Pydantic prefixes a custom validator's message with "Value error, ".
                 message = str(e["msg"]).removeprefix("Value error, ")

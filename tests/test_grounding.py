@@ -6,6 +6,7 @@ Offline: pure functions over tool records.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -233,6 +234,16 @@ def test_attempts_only_see_tool_output_from_before_them() -> None:
     ]
     (attempt,) = submission_attempts(trace, NS)
     assert attempt.grounded_share == 0.0
+
+
+def test_attempts_include_a_submission_with_a_field_sent_as_a_json_string() -> None:
+    # Run 3, b5a9e8e8cb69 (DECISIONS.md 042): Haiku sent proposed_fix as a JSON string.
+    # submit_diagnosis decodes that and accepted it, so the re-check must count it too.
+    sub = diagnosis([("get_logs", "is forbidden")]).model_dump(mode="json")
+    sub["proposed_fix"] = json.dumps(sub["proposed_fix"])
+    trace = [*RECORDS, ToolRecord("submit_diagnosis", sub, "accepted", False, 0.0)]
+    (attempt,) = submission_attempts(trace, NS)
+    assert attempt.grounded_share == 1.0
 
 
 def test_attempts_skip_submissions_that_failed_the_schema() -> None:

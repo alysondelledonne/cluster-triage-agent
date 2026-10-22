@@ -94,7 +94,7 @@ How a submission is handled:
 - Unknown fields are rejected, so a misspelled field comes back as an error instead of being dropped.
 - `parse_submission` returns a `Diagnosis` or raises `SubmissionError` with one line per problem (`- confidence: Input should be less than or equal to 1`). The loop sends that text back to the model to correct, a limited number of times.
 - **Grounding** (`agent/grounding.py`, DECISIONS 026). A schema-valid submission is then checked against the run so far: each quote, after collapsing whitespace and unescaping `\"`, YAML's `''`, and `\n` / `\t` escapes (DECISIONS 038), must appear in the output of an earlier call to the tool it names (error results count; case and wording must match); and the fix YAML must parse, name each object, and stay out of Secrets, cluster-wide kinds and other namespaces. Any failure rejects the submission with one line per problem (`- evidence.1.quote: not found in any get_logs output in this run`), using the same retries as schema errors. So an accepted diagnosis only ever carries checked quotes.
-- `submission_attempts` re-checks every submission in a run's trace against the calls made before it, so the evals can still report how often the first try was ungrounded.
+- `submission_attempts` re-checks every submission in a run's trace against the calls made before it, so the evals can still report how often the first try was ungrounded. It reads each submission as `submit_diagnosis` does, decoding fields sent as JSON strings (`models.decode_json_strings`, DECISIONS 042).
 
 ## Failure scenarios
 
