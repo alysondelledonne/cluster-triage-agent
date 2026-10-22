@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 044 | 2026-10-22 | Run 4 (the "after"): both models 18/18; prompt version 2 stays; the Milestone 3 "one change" is done | Accepted |
 | 043 | 2026-10-22 | Prompt version 2: one-line quotes and the CrashLoop/ConfigError line, the Milestone 3 "one change" | Accepted |
 | 042 | 2026-10-22 | Run 3 (the "before"): Haiku 18/18, Grok 17/18; the evals' re-check decodes JSON-string fields; prompt version 2 proposed | Accepted; prompt version 2 accepted in 043 |
 | 041 | 2026-10-22 | A fix with blank YAML counts as no fix, so Unknown passes and nothing invents a placeholder | Accepted |
@@ -53,6 +54,10 @@ A running log of design and project decisions: what was decided, why, and what i
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 044 — Run 4 (the "after"): both models 18/18; prompt version 2 stays; the Milestone 3 "one change" is done
+**Why:** Run 4 (evals/RESULTS.md: commit `40a407e`, prompt version 2, $0.48) against Run 3 (version 1). Haiku 18/18, first-try grounding 1.0, $0.0023 an incident; Grok 18/18, 0.98, $0.024. The CrashLoop/ConfigError wording did what it was for: Grok's scenario 1 went from 2/3 to 3/3, with no ConfigError calls (2 of 6 runs across Runs 2–3) and fewer calls (4 against 5–6). The quoting rule showed no measurable effect: Run 3 had no joined or annotated quotes left, and Run 4's one ungrounded first try was a new kind, a sentence Grok wrote itself, which grounding caught and Grok corrected in one retry after the new rejection message. The first real cap hit since 040 (`d082cccc60e9`) submitted the right diagnosis on the forced turn, where Run 2's identical path ended with none.
+**Consequence:** Prompt version 2 stays as the current prompt, and the README's "one change" item is ticked. Haiku stays the default model: equal accuracy at about a tenth of Grok's cost. Not pursued in M3, noted for later: Grok's 10–12 calls on scenario 6 (an exploration budget, or a prompt line saying a `not found` Role is itself the evidence) and Haiku leaving required fields out of 1 in 6 first submissions (costs a turn, never a diagnosis). With 3 repeats per scenario, single-run differences are noise (Grok has ranged 15/18–18/18 without changes to how it diagnoses); the scenario 1 result is the clearest signal because a specific repeated mistake disappeared. Next in M3: the CI workflows, then the README for a stranger.
 
 ### 043 — Prompt version 2: one-line quotes and the CrashLoop/ConfigError line, the Milestone 3 "one change"
 **Why:** Approved on 2026-10-22 as proposed in 042. Across Runs 1–3, the two failures that cost Grok diagnoses under prompt version 1 were quotes that grounding rightly rejected (joined lines or fields, words cut from the middle of a line, notes added, YAML rewritten in flow style; 2 runs lost) and scenario 1 called ConfigError (2 runs lost). Both are wording problems the prompt can address, and each leaves its own trace, so the "after" run can show which one moved.

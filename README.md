@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 3 (evals, CI and README) in progress. Three real evals so far on the recorded scenarios (36 runs each, details in [evals/RESULTS.md](evals/RESULTS.md)). Latest (Run 3, the "before" for prompt version 2): Claude Haiku 18/18 correct at $0.0024 an incident; `grok-4.20-0309-non-reasoning` 17/18 at $0.023. Prompt version 2 is in (one-line quotes, and the CrashLoop/ConfigError line; DECISIONS 043). Next: Run 4, the "after".
+**Status:** Milestone 3 (evals, CI and README) in progress. Four real evals on the recorded scenarios (36 runs each, details in [evals/RESULTS.md](evals/RESULTS.md)). Latest (Run 4, prompt version 2): Claude Haiku and `grok-4.20-0309-non-reasoning` both 18/18, at $0.0023 and $0.024 an incident. The "one change" (prompt version 2) is done, with before and after (DECISIONS 044). Next: CI, then the README for a stranger.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -134,14 +134,14 @@ No misses. One run each is not a measurement; Milestone 3 runs each scenario 3 t
 - [x] `run_evals`: for each scenario and model, seed, triage 3 times, grade, reset (`triage-eval`, replaying the recordings instead of seeding each run: DECISIONS 033)
 - [x] Accuracy, evidence grounding, p50/p95 latency, cost per incident and tool calls in a results table
 - [x] Claude vs the comparison model; which wins on accuracy, cost and speed
-- [ ] One change made from the results, with before and after
+- [x] One change made from the results, with before and after (prompt version 2: Run 3 → Run 4, DECISIONS 043–044)
 - [ ] GitHub Actions: checks on every PR; a manual workflow that spins up kind and runs the evals
 - [ ] README: results table, runbook, known failure modes, "How I built this with Claude Code"
 - [ ] Demo GIF of the CLI diagnosing a scenario
 
 **Done when:** a stranger can clone the repo, follow the README, and reproduce the results table.
 
-Real evals so far, all with prompt version 1, 3 runs per scenario per model, replayed from the recordings ($0.55 each). Run 2 is Run 1 rerun after fixing two flaws in the measuring tools (DECISIONS 038). Run 3 adds the loop and metric fixes (040–042) and is the "before" for prompt version 2; from Run 3 on, first-try grounding leaves out runs that never submitted. Details, per-scenario numbers and every anomaly by run: [evals/RESULTS.md](evals/RESULTS.md).
+Real evals so far, 3 runs per scenario per model, replayed from the recordings ($0.46–0.55 each). Runs 1–3 use prompt version 1, Run 4 version 2. Run 2 is Run 1 rerun after fixing two flaws in the measuring tools (DECISIONS 038). Run 3 adds the loop and metric fixes (040–042) and is the "before" for prompt version 2; from Run 3 on, first-try grounding leaves out runs that never submitted. Details, per-scenario numbers and every anomaly by run: [evals/RESULTS.md](evals/RESULTS.md).
 
 | run | model | accuracy | first-try grounding | tool calls / run | latency p50 / p95 | cost / incident |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -151,12 +151,23 @@ Real evals so far, all with prompt version 1, 3 runs per scenario per model, rep
 | 2 | `grok-4.20-0309-non-reasoning` | 15/18 (0.83) | 0.83 | 5.4 | 5.5s / 17.0s | $0.028 |
 | 3 | `claude-haiku-5-5` | 18/18 (1.00) | 0.99 | 3.8 | 6.1s / 10.3s | $0.0024 |
 | 3 | `grok-4.20-0309-non-reasoning` | 17/18 (0.94) | 1.00 | 4.8 | 6.7s / 14.8s | $0.023 |
+| 4 | `claude-haiku-5-5` | 18/18 (1.00) | 1.00 | 3.8 | 5.9s / 9.5s | $0.0023 |
+| 4 | `grok-4.20-0309-non-reasoning` | 18/18 (1.00) | 0.98 | 4.8 | 6.0s / 16.1s | $0.024 |
 
 Haiku wins on accuracy, evidence and cost (about 13x cheaper); Grok is faster on simple scenarios but slower on the two hardest. Grok's one miss (scenario 5) had the right fix, but its submissions kept quoting lines joined together that aren't adjacent in the output, so none was accepted. The run also exposed two flaws in the measuring tools, `\n` escapes in grounding and objects missing from the recordings, which are fixed before the before-and-after for prompt version 2 (DECISIONS 037).
 
 Run 2 confirmed the measurement fixes (no unrecorded calls, no quote rejected for escaping; Haiku unchanged). Grok lost two scenario 6 runs in an identical way: given the API's real `not found` for the missing Role, it kept searching until the 12-call cap, then wrote the right diagnosis as plain text on the forced last turn. The loop offers only `submit_diagnosis` there but doesn't require the call, which is a gap in the loop that gets fixed before prompt version 2 (DECISIONS 039). Its scenario 1 miss was the same joined-quote habit as Run 1.
 
 Run 3 had no cap hits and no quoting failures from Grok (first-try grounding 1.0). Its one miss was scenario 1 again, called ConfigError although the prompt defines that as a container that never starts. Haiku stayed at 18/18, with one quote missing a quote mark and two submissions that left out required fields, all corrected on retry.
+
+**The one change: prompt version 2** (Run 3 before, Run 4 after; DECISIONS 043–044). It asks for one-line quotes, never joined or annotated, and draws the line between CrashLoop and ConfigError. Grok's scenario 1 misreading (ConfigError in 2 of 6 runs before) disappeared: 3/3 CrashLoop, in 4 calls instead of 5–6. The quoting rule showed no measurable effect, because Run 3 had no joined quotes left to fix. Both models scored 18/18 after the change. The first real cap hit since the forced-turn fix ended in a correct diagnosis instead of plain text.
+
+| | Haiku before → after | Grok before → after |
+| --- | --- | --- |
+| accuracy | 18/18 → 18/18 | 17/18 → 18/18 |
+| scenario 1 | 3/3 → 3/3 | 2/3 → 3/3 |
+| first-try grounding | 0.99 → 1.00 | 1.00 → 0.98 |
+| cost per incident | $0.0024 → $0.0023 | $0.023 → $0.024 |
 
 ### Milestone 4: Make it stronger
 

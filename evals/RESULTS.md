@@ -13,6 +13,84 @@ uv run triage-eval --provider anthropic --provider grok --repeats 3 --save
 
 ---
 
+## Run 4: 2026-10-22, prompt version 2 (the "after")
+
+The Milestone 3 "one change": prompt version 2 (DECISIONS 043) against Run 3 as the "before". The only differences from Run 3 are the prompt's quoting rule, its CrashLoop/ConfigError wording, and the grounding rejection message that repeats the quoting rule. Same models, tools, schema, loop, recordings and 3 runs per scenario.
+
+**Setup**
+
+| | |
+| --- | --- |
+| When | 2026-10-22 10:40–10:45 PT (17:45 UTC) |
+| Code | commit `40a407e` (DECISIONS 043) |
+| Prompt | version 2 |
+| Cluster data | the six recordings from 038, unchanged since Run 2 |
+| Models | `claude-haiku-5-5` and `grok-4.20-0309-non-reasoning`, prices as in Run 1 |
+| Runs | 3 per scenario per model, 36 in total, one at a time |
+| Results file | `evals/results/20261022T174519Z-claude-haiku-5-5+grok-4.20-0309-non-reasoning.json` |
+| Total cost | $0.48: Haiku $0.04 (307K tokens in, 22K out), Grok $0.44 (333K in, 8K out) |
+
+**Summary**
+
+| model | runs | accuracy | category_accuracy | submitted_rate | first_try_grounding | avg_tool_calls | cap_rate | unrecorded_call_rate | latency_p50_s | latency_p95_s | cost_per_incident_usd |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| claude-haiku-5-5 | 18 | 1.0 | 1.0 | 1.0 | 1.0 | 3.83 | 0.0 | 0.0 | 5.85 | 9.48 | 0.00231 |
+| grok-4.20-0309-non-reasoning | 18 | 1.0 | 1.0 | 1.0 | 0.981 | 4.78 | 0.056 | 0.0 | 6.01 | 16.09 | 0.02422 |
+
+**Before and after** (Run 3, prompt version 1 → Run 4, prompt version 2)
+
+| measure | Haiku before | Haiku after | Grok before | Grok after |
+| --- | --- | --- | --- | --- |
+| accuracy | 18/18 | 18/18 | 17/18 | **18/18** |
+| scenario 1 (CrashLoop) | 3/3 | 3/3 | 2/3 (one ConfigError) | **3/3** |
+| first-try grounding | 0.989 (corrected, see Run 3) | 1.0 | 1.0 | 0.981 |
+| runs with an ungrounded first try | 1 | 0 | 0 | 1 |
+| runs with a schema rejection | 2 | 3 | 0 | 0 |
+| avg tool calls | 3.78 | 3.83 | 4.83 | 4.78 |
+| scenario 1 tool calls (mean) | 4.7 | 4.7 | 5.3 | **4.0** |
+| scenario 6 tool calls (mean) | 4.7 | 5.0 | 10.3 | 11.0 |
+| runs that used all 12 calls | 0 | 0 | 0 | 1 |
+| latency p50 / p95 (s) | 6.07 / 10.3 | 5.85 / 9.48 | 6.74 / 14.79 | 6.01 / 16.09 |
+| cost per incident | $0.00236 | $0.00231 | $0.02298 | $0.02422 |
+
+**Per scenario** (correct runs; tool calls, latency and confidence for each of the three runs; mean cost per run)
+
+| scenario | Haiku correct | Haiku tool calls | Haiku latency (s) | Haiku cost | Grok correct | Grok tool calls | Grok latency (s) | Grok cost |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 01-crashloop | 3/3 | 5, 4, 5 | 7.2, 9.5, 6.6 | $0.0028 | 3/3 | 4, 4, 4 | 6.2, 6.0, 5.5 | $0.0189 |
+| 02-imagepull | 3/3 | 3, 3, 3 | 5.3, 5.3, 5.0 | $0.0018 | 3/3 | 3, 3, 3 | 5.4, 5.2, 5.5 | $0.0156 |
+| 03-oomkilled | 3/3 | 3, 3, 3 | 5.1, 9.1, 5.9 | $0.0022 | 3/3 | 4, 3, 3 | 4.8, 6.6, 6.3 | $0.0163 |
+| 04-missing-config | 3/3 | 4, 4, 4 | 5.6, 5.7, 5.3 | $0.0019 | 3/3 | 4, 4, 4 | 4.7, 7.2, 5.1 | $0.0187 |
+| 05-failing-probe | 3/3 | 3, 3, 4 | 5.9, 5.2, 6.7 | $0.0020 | 3/3 | 3, 3, 4 | 6.4, 6.0, 9.7 | $0.0167 |
+| 06-rbac-denied | 3/3 | 5, 5, 5 | 12.6, 6.6, 7.5 | $0.0031 | 3/3 | 12, 11, 10 | 15.7, 16.1, 17.4 | $0.0592 |
+
+Confidence: Haiku 0.80–0.95, Grok 0.90–0.95 on every run.
+
+**Every anomaly, by run**
+
+| run ID | model | scenario | what happened | verdict |
+| --- | --- | --- | --- | --- |
+| `d082cccc60e9` | Grok | 06 | Used all 12 calls on the same path as Run 2's two failures (the two `not found`s, then events for Role, RoleBinding, ClusterRole and ClusterRoleBinding). On the forced turn, which now requires the call (040), it **submitted** the right diagnosis, confidence 0.95. Its `describe` quote was two adjacent lines (`serviceAccount: reporter` and `serviceAccountName: reporter`): grounding accepts adjacent lines (038), though prompt version 2 asks for one. | **040 working in a real eval**: in Run 2 this path ended with no diagnosis |
+| `2ccc83ecaf93` | Grok | 06 | One nudge, one rejection, then accepted. The rejected `describe` quote was Grok's own sentence, `the container command does exactly that curl using the SA token.`, which is in no output. After the new rejection message it resubmitted with `serviceAccountName: reporter`, a real line, and was accepted. | Correct rejection; a new kind of ungrounded quote (invented rather than joined), corrected in one retry |
+| `b4b2479011e2` | Grok | 06 | One nudge; right answer after 10 calls. | Correct, explored past what it needed |
+| `64ac58e58dfb` | Haiku | 01 | First submission left out `proposed_fix` and `confidence`; accepted on the retry. | Schema working as designed |
+| `df3b9a879265` | Haiku | 03 | Same: `proposed_fix` and `confidence` missing, then accepted. | Schema working as designed |
+| `194bd28c0b57` | Haiku | 06 | First submission had no `evidence` and a `root_cause` over 600 characters; accepted on the retry. | Schema working as designed |
+
+**What this says**
+
+1. **The CrashLoop/ConfigError wording worked.** Grok called scenario 1 ConfigError in 2 of its 6 runs across Runs 2 and 3; in Run 4, 3/3 CrashLoop, and in fewer calls (4 each, against 5–6) at three quarters of the cost. With 3 repeats this is suggestive rather than proven, but the misreading it targets is gone and nothing else changed.
+2. **The quoting rule shows no measurable effect at this size.** Run 3 already had no joined or annotated quotes from Grok, so there was little to improve. Run 4's one ungrounded first try was a different failure (an invented sentence), which the rule doesn't address and grounding caught. Haiku's dropped-quote-mark case from Run 3 didn't recur. One encouraging sign: after the new rejection message, Grok corrected its quote in one retry, where in Run 1 (`f740db3c3d7d`) it resent the same joined quote twice and lost the run. One case is an anecdote.
+3. **The forced turn now ends in a diagnosis.** The first real cap hit since 040 submitted the right answer instead of plain text.
+4. **What's left is cost and effort, not accuracy.** Both models are 18/18. Grok still spends 10–12 calls on scenario 6 where Haiku uses 5, and Haiku still leaves required fields out of 1 in 6 first submissions (costing a turn, never a diagnosis).
+5. **The choice of model stands.** Haiku: 18/18 at $0.0023 an incident, about 10x cheaper than Grok's $0.024, with the same accuracy.
+
+**Caveats:** one "before" and one "after" of 18 runs per model. Grok's accuracy has moved between 15/18 and 18/18 across runs with no change to how it diagnoses (Runs 2–3), so a one-run difference is within the noise; the scenario 1 result is the clearest signal because it removes a specific, repeated mistake.
+
+**Milestone 3 "one change": done.** Prompt version 2 stays.
+
+---
+
 ## Run 3: 2026-10-22, prompt version 1, after the loop and metric fixes
 
 The "before" for prompt version 2 (DECISIONS 040). Same models, prompt, recordings and 3 runs per scenario as Run 2. What changed since Run 2: the forced last turn requires the `submit_diagnosis` call (040), `cap_rate` counts every run that used all 12 calls and `first_try_grounding` leaves out runs with no submission (040), and a blank fix counts as no fix (041).
