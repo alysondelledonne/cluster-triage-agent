@@ -13,6 +13,66 @@ uv run triage-eval --provider anthropic --provider grok --repeats 3 --save
 
 ---
 
+## Run 5: 2026-10-22, prompt version 2, on GitHub Actions
+
+The first eval run from the manual `eval-live.yml` workflow (DECISIONS 045), on a GitHub-hosted runner instead of a laptop. Everything the agent sees is the same as Run 4: prompt version 2, the same recordings, models and 3 runs per scenario. It checks that the workflow works and that Run 4's results hold on a second try.
+
+**Setup**
+
+| | |
+| --- | --- |
+| When | 2026-10-22 11:52–11:57 PT (18:57 UTC) |
+| Code | commit `e5ebaaf` (DECISIONS 045; nothing the agent uses changed since Run 4) |
+| Where | GitHub Actions, `ubuntu-24.04`, workflow run 39835204120 |
+| Prompt | version 2 |
+| Cluster data | the six recordings from 038 |
+| Models | `claude-haiku-5-5` and `grok-4.20-0309-non-reasoning`, prices as in Run 1 |
+| Runs | 3 per scenario per model, 36 in total, one at a time |
+| Results file | `evals/results/20261022T185710Z-claude-haiku-5-5+grok-4.20-0309-non-reasoning.json` (from the run's `eval-results` artifact) |
+| Total cost | $0.50: Haiku $0.04 (290K tokens in, 20K out), Grok $0.46 (353K in, 8K out) |
+
+**Summary**
+
+| model | runs | accuracy | category_accuracy | submitted_rate | first_try_grounding | avg_tool_calls | cap_rate | unrecorded_call_rate | latency_p50_s | latency_p95_s | cost_per_incident_usd |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| claude-haiku-5-5 | 18 | 1.0 | 1.0 | 1.0 | 1.0 | 3.78 | 0.0 | 0.0 | 5.53 | 6.79 | 0.00218 |
+| grok-4.20-0309-non-reasoning | 18 | 1.0 | 1.0 | 1.0 | 0.968 | 4.94 | 0.0 | 0.0 | 6.14 | 16.14 | 0.02565 |
+
+Against Run 4: both models 18/18 again, so prompt version 2's result held on a second run. Haiku's p95 latency fell from 9.5s to 6.8s, likely the runner's network path to the API rather than the model. Grok's first-try grounding slipped from 0.98 to 0.97 (below).
+
+**Per scenario** (correct runs; tool calls, latency and confidence for each of the three runs; mean cost per run)
+
+| scenario | Haiku correct | Haiku tool calls | Haiku latency (s) | Haiku cost | Grok correct | Grok tool calls | Grok latency (s) | Grok cost |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 01-crashloop | 3/3 | 4, 5, 5 | 6.3, 6.3, 6.0 | $0.0024 | 3/3 | 4, 4, 4 | 9.1, 5.0, 5.9 | $0.0210 |
+| 02-imagepull | 3/3 | 3, 3, 3 | 4.6, 4.4, 4.2 | $0.0018 | 3/3 | 3, 3, 3 | 5.2, 6.8, 7.3 | $0.0158 |
+| 03-oomkilled | 3/3 | 3, 3, 3 | 5.8, 5.8, 5.5 | $0.0019 | 3/3 | 4, 4, 4 | 5.3, 4.7, 5.7 | $0.0190 |
+| 04-missing-config | 3/3 | 4, 4, 4 | 5.3, 5.6, 4.7 | $0.0020 | 3/3 | 4, 6, 4 | 5.8, 18.2, 6.1 | $0.0269 |
+| 05-failing-probe | 3/3 | 3, 3, 3 | 5.0, 4.5, 5.2 | $0.0018 | 3/3 | 4, 4, 3 | 6.1, 6.4, 8.5 | $0.0185 |
+| 06-rbac-denied | 3/3 | 5, 5, 5 | 12.5, 6.8, 6.5 | $0.0032 | 3/3 | 11, 10, 10 | 13.5, 11.2, 16.1 | $0.0528 |
+
+Confidence: Haiku 0.85–0.95, Grok 0.90–0.95 on every run.
+
+**Every anomaly, by run**
+
+| run ID | model | scenario | what happened | verdict |
+| --- | --- | --- | --- | --- |
+| `8f2336d8a409` | Grok | 04 | Two rejections, then accepted (6 calls, 18.2s). Its `get_events` quote was `Warning Failed Pod/billing-65f89c9d9d-7l2ld Error: couldn''t find key LOG_LEVEL ...`: the event's `type`, `reason`, `object` and `message` fields, each on its own line in the output, joined into one line like `kubectl get events` prints them. It re-read the events and resent the same quote, was rejected again, then read the pod's events alone and quoted the message line on its own. | Correct rejections; the joined-fields habit, which prompt version 2 reduced but didn't end |
+| `a332b61880cb` | Grok | 01 | One rejection, then accepted: `Warning BackOff Back-off restarting failed container api ...`, the same joining of `type`, `reason` and `message`. Fixed on the first retry. | Correct rejection; same habit |
+| `b2737772ae77` | Grok | 06 | One nudge; right answer after 10 calls, on the same path as Runs 2–4 (the `not found` Role and RoleBinding, then events for those kinds). | Correct, explored past what it needed |
+| `b0c50ed42fd0` | Haiku | 06 | First submission had no `evidence` and a `root_cause` over 600 characters, exactly as Run 4's `194bd28c0b57` on the same scenario; accepted on the retry. | Schema working as designed |
+
+**What this says**
+
+1. **The workflow reproduces the results.** A stranger with two API keys can now get the same table from the Actions tab, which is Milestone 3's "Done when" for the results.
+2. **Prompt version 2's accuracy result held:** 18/18 for both models in two runs in a row, and Grok's scenario 1 was CrashLoop 6/6 across them.
+3. **Grok's event quoting is a specific, repeatable habit.** Every Grok quote rejection since version 2 except one (Run 4's invented sentence) joins an event's separate fields into the one-line form `kubectl get events` shows. The tool prints each field on its own line. Either the prompt names this case, or `get_events` prints one line per event so the natural quote is real. Noted for after M3 (DECISIONS 046).
+4. **Haiku's one repeated slip** is the scenario 6 first submission with no evidence and an overlong root cause, twice now. It costs a retry, never a diagnosis.
+
+**Caveats:** as before, 3 runs per scenario per model. This run differs from Run 4 in where it ran, not in what the agent saw, so differences in latency say more about the network than the models.
+
+---
+
 ## Run 4: 2026-10-22, prompt version 2 (the "after")
 
 The Milestone 3 "one change": prompt version 2 (DECISIONS 043) against Run 3 as the "before". The only differences from Run 3 are the prompt's quoting rule, its CrashLoop/ConfigError wording, and the grounding rejection message that repeats the quoting rule. Same models, tools, schema, loop, recordings and 3 runs per scenario.

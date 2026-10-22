@@ -4,7 +4,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 3 (evals, CI and README) in progress. Four real evals on the recorded scenarios (36 runs each, details in [evals/RESULTS.md](evals/RESULTS.md)). Latest (Run 4, prompt version 2): Claude Haiku and `grok-4.20-0309-non-reasoning` both 18/18, at $0.0023 and $0.024 an incident. CI workflows are written (DECISIONS 045) and waiting for their first runs. Next: the README for a stranger.
+**Status:** Milestone 3 (evals, CI and README) in progress. Five real evals on the recorded scenarios (36 runs each, details in [evals/RESULTS.md](evals/RESULTS.md)); the latest two, with prompt version 2, put Claude Haiku and `grok-4.20-0309-non-reasoning` both at 18/18, at about $0.0022 and $0.025 an incident. CI runs on every push and PR; the kind and live-eval workflows have passed their first runs (DECISIONS 046). Next: the README for a stranger.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -149,13 +149,13 @@ No misses. One run each is not a measurement; Milestone 3 runs each scenario 3 t
 - [x] Accuracy, evidence grounding, p50/p95 latency, cost per incident and tool calls in a results table
 - [x] Claude vs the comparison model; which wins on accuracy, cost and speed
 - [x] One change made from the results, with before and after (prompt version 2: Run 3 → Run 4, DECISIONS 043–044)
-- [ ] GitHub Actions: checks on every PR; a manual workflow that spins up kind and runs the evals
+- [x] GitHub Actions: checks on every PR; a manual workflow that spins up kind and runs the evals (`ci.yml`, `kind.yml`, `eval-live.yml`; first runs 2026-10-22, DECISIONS 045–046)
 - [ ] README: results table, runbook, known failure modes, "How I built this with Claude Code"
 - [ ] Demo GIF of the CLI diagnosing a scenario
 
 **Done when:** a stranger can clone the repo, follow the README, and reproduce the results table.
 
-Real evals so far, 3 runs per scenario per model, replayed from the recordings ($0.46–0.55 each). Runs 1–3 use prompt version 1, Run 4 version 2. Run 2 is Run 1 rerun after fixing two flaws in the measuring tools (DECISIONS 038). Run 3 adds the loop and metric fixes (040–042) and is the "before" for prompt version 2; from Run 3 on, first-try grounding leaves out runs that never submitted. Details, per-scenario numbers and every anomaly by run: [evals/RESULTS.md](evals/RESULTS.md).
+Real evals so far, 3 runs per scenario per model, replayed from the recordings ($0.46–0.55 each). Runs 1–3 use prompt version 1, Runs 4 and 5 version 2; Run 5 ran on GitHub Actions through `eval-live.yml`. Run 2 is Run 1 rerun after fixing two flaws in the measuring tools (DECISIONS 038). Run 3 adds the loop and metric fixes (040–042) and is the "before" for prompt version 2; from Run 3 on, first-try grounding leaves out runs that never submitted. Details, per-scenario numbers and every anomaly by run: [evals/RESULTS.md](evals/RESULTS.md).
 
 | run | model | accuracy | first-try grounding | tool calls / run | latency p50 / p95 | cost / incident |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -167,6 +167,8 @@ Real evals so far, 3 runs per scenario per model, replayed from the recordings (
 | 3 | `grok-4.20-0309-non-reasoning` | 17/18 (0.94) | 1.00 | 4.8 | 6.7s / 14.8s | $0.023 |
 | 4 | `claude-haiku-5-5` | 18/18 (1.00) | 1.00 | 3.8 | 5.9s / 9.5s | $0.0023 |
 | 4 | `grok-4.20-0309-non-reasoning` | 18/18 (1.00) | 0.98 | 4.8 | 6.0s / 16.1s | $0.024 |
+| 5 | `claude-haiku-5-5` | 18/18 (1.00) | 1.00 | 3.8 | 5.5s / 6.8s | $0.0022 |
+| 5 | `grok-4.20-0309-non-reasoning` | 18/18 (1.00) | 0.97 | 4.9 | 6.1s / 16.1s | $0.026 |
 
 Haiku wins on accuracy, evidence and cost (about 13x cheaper); Grok is faster on simple scenarios but slower on the two hardest. Grok's one miss (scenario 5) had the right fix, but its submissions kept quoting lines joined together that aren't adjacent in the output, so none was accepted. The run also exposed two flaws in the measuring tools, `\n` escapes in grounding and objects missing from the recordings, which are fixed before the before-and-after for prompt version 2 (DECISIONS 037).
 
@@ -182,6 +184,8 @@ Run 3 had no cap hits and no quoting failures from Grok (first-try grounding 1.0
 | scenario 1 | 3/3 → 3/3 | 2/3 → 3/3 |
 | first-try grounding | 0.99 → 1.00 | 1.00 → 0.98 |
 | cost per incident | $0.0024 → $0.0023 | $0.023 → $0.024 |
+
+Run 5 repeated Run 4 from the `eval-live.yml` workflow on a GitHub runner: both models 18/18 again. Grok's remaining quote rejections there joined an event's `type`, `reason` and `message` lines into the single line `kubectl get events` would print, which the tool doesn't; noted for after Milestone 3.
 
 ### Milestone 4: Make it stronger
 
