@@ -202,6 +202,9 @@ def test_problems_are_listed_by_field_for_the_model() -> None:
     assert report.grounded_share == 0.5
     problems = report.problems()
     assert problems[0].startswith("- evidence.1.quote: not found in any get_logs output")
+    # The rejection repeats prompt version 2's quoting rule (DECISIONS.md 043).
+    assert "one line, or a contiguous part of one, exactly as shown" in problems[0]
+    assert "don't join lines or add notes" in problems[0]
     assert problems[1].startswith("- proposed_fix.yaml: ")
     assert "Secret" in problems[1]
 

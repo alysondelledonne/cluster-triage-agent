@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 3 (evals, CI and README) in progress. Three real evals so far on the recorded scenarios (36 runs each, details in [evals/RESULTS.md](evals/RESULTS.md)). Latest (Run 3, the "before" for prompt version 2): Claude Haiku 18/18 correct at $0.0024 an incident; `grok-4.20-0309-non-reasoning` 17/18 at $0.023. Next: prompt version 2 (proposed in DECISIONS 042) and the "after" run.
+**Status:** Milestone 3 (evals, CI and README) in progress. Three real evals so far on the recorded scenarios (36 runs each, details in [evals/RESULTS.md](evals/RESULTS.md)). Latest (Run 3, the "before" for prompt version 2): Claude Haiku 18/18 correct at $0.0024 an incident; `grok-4.20-0309-non-reasoning` 17/18 at $0.023. Prompt version 2 is in (one-line quotes, and the CrashLoop/ConfigError line; DECISIONS 043). Next: Run 4, the "after".
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)

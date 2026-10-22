@@ -138,8 +138,9 @@ class GroundingReport:
     def problems(self) -> list[str]:
         """One line per problem, by field, in the same form as schema errors."""
         out = [
-            f"- evidence.{i}.quote: not found in any {q.tool} output in this run; "
-            "copy it exactly from a tool result"
+            f"- evidence.{i}.quote: not found in any {q.tool} output in this run; quote "
+            "one line, or a contiguous part of one, exactly as shown; don't join lines or "
+            "add notes"
             for i, q in enumerate(self.quotes)
             if not q.grounded
         ]

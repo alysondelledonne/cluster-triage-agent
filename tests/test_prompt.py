@@ -67,6 +67,29 @@ def test_prompt_has_a_version() -> None:
     assert re.fullmatch(r"\d+", PROMPT_VERSION)
 
 
+def test_version_2_is_the_quoting_and_crashloop_change() -> None:
+    # DECISIONS.md 043: the Milestone 3 "one change", measured against Run 3.
+    assert PROMPT_VERSION == "2"
+
+
+def test_quotes_are_one_line_or_part_of_one_never_joined_or_annotated() -> None:
+    # Runs 1-2: Grok joined lines and fields, trimmed inside lines, added notes and
+    # rewrote YAML in flow style; grounding rejected each one (DECISIONS.md 042).
+    text = SYSTEM_PROMPT.lower()
+    assert "one line, or a contiguous part of one" in text
+    for rule in ["never join lines or fields", "add notes", "rewrite yaml"]:
+        assert rule in text, rule
+
+
+def test_a_container_that_starts_and_exits_is_crashloop_not_configerror() -> None:
+    # Runs 2-3: Grok called scenario 1 (exits 1 because LISTEN_PORT is unset) ConfigError.
+    crash = CATEGORY_SIGNS[Category.CRASH_LOOP].lower()
+    config = CATEGORY_SIGNS[Category.CONFIG_ERROR].lower()
+    assert "missing setting" in crash
+    assert "can't create or start the container" in config
+    assert "starts and then exits, it is crashloop" in config
+
+
 def test_task_message_names_the_namespace() -> None:
     message = task_message("triage-06-rbac-denied")
     assert "`triage-06-rbac-denied`" in message

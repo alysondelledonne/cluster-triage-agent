@@ -14,18 +14,20 @@ from ..models import Category
 from .loop import DEFAULT_MAX_TOOL_CALLS
 from .submit import SUBMIT_DIAGNOSIS
 
-PROMPT_VERSION = "1"
+PROMPT_VERSION = "2"  # 2: quoting rule and the CrashLoop/ConfigError line (DECISIONS.md 043)
 
 # What each category looks like in the tools' output. A test keeps this covering
 # every Category, so adding one can't leave the prompt without it.
 CATEGORY_SIGNS: dict[Category, str] = {
-    Category.CRASH_LOOP: "a container keeps exiting with an error (CrashLoopBackOff, "
-    "terminated: Error, a non-zero exit code); its previous logs say why.",
+    Category.CRASH_LOOP: "a container starts and keeps exiting with an error (CrashLoopBackOff, "
+    "terminated: Error, a non-zero exit code), even when the cause is a missing setting or "
+    "env var; its previous logs say why.",
     Category.IMAGE_PULL: "ErrImagePull or ImagePullBackOff; the image or tag can't be pulled.",
     Category.OOM_KILLED: "a container terminated with reason OOMKilled; its memory limit is "
     "below what it uses.",
-    Category.CONFIG_ERROR: "CreateContainerConfigError, or the pod references a ConfigMap, "
-    "key or volume that doesn't exist; the container never starts.",
+    Category.CONFIG_ERROR: "Kubernetes can't create or start the container: "
+    "CreateContainerConfigError, or the pod references a ConfigMap, key or volume that "
+    "doesn't exist. If the container starts and then exits, it is CrashLoop.",
     Category.PROBE_FAILURE: "the container runs but never becomes Ready; Unhealthy events "
     "from a readiness or liveness probe.",
     Category.RBAC_DENIED: "the app's own calls to the Kubernetes API are denied (403, "
@@ -64,7 +66,9 @@ When you know the cause, call `{SUBMIT_DIAGNOSIS}` once:
 - affected_resource: the object a person should change. Usually the Deployment that \
 owns the failing pod; for RBACDenied, the ServiceAccount.
 - root_cause: one or two plain sentences.
-- evidence: lines copied exactly from tool results, most telling first. Quotes are \
+- evidence: quotes from tool results, most telling first. Each quote is one line, or \
+a contiguous part of one, copied exactly as shown: never join lines or fields, cut \
+words out of the middle, add notes, or rewrite YAML in another style. Quotes are \
 checked against the real output, so never paraphrase.
 - proposed_fix: the smallest change that fixes the cause. Each YAML document names \
 apiVersion, kind and metadata.name and holds only the fields that change, or is a new \
