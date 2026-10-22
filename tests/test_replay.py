@@ -308,3 +308,63 @@ def test_record_waits_for_the_signal_again_after_settling() -> None:
     ]
     assert result.scenario == "02-imagepull"
     assert rec.scenario == "02-imagepull"
+
+
+# ---------- complete inventory: "not found" like the API (DECISIONS.md 038) ----------
+
+
+def complete(reader: TinyReader | None = None) -> Recording:
+    return record_scenario(
+        find(SCENARIOS, "rbac-denied"), reader or TinyReader(), server_version="v1.34.0"
+    )
+
+
+def test_the_recorder_reads_the_namespaces_built_in_objects_and_marks_it_complete() -> None:
+    reader = TinyReader()
+    rec = complete(reader)
+    assert "read serviceaccount/default" in reader.calls
+    assert "read configmap/kube-root-ca.crt" in reader.calls
+    assert rec.inventory_complete
+
+
+@pytest.mark.parametrize(
+    ("kind", "name", "message"),
+    [
+        ("role", "reporter", 'roles.rbac.authorization.k8s.io "reporter" not found'),
+        ("rolebinding", "reporter", 'rolebindings.rbac.authorization.k8s.io "reporter" not found'),
+        ("configmap", "api", 'configmaps "api" not found'),
+        ("deployment", "web", 'deployments.apps "web" not found'),
+        ("pod", "nope-123", 'pods "nope-123" not found'),
+    ],
+)
+def test_unknown_objects_get_the_apis_not_found(kind: Kind, name: str, message: str) -> None:
+    replay = ReplayReader(complete())
+    with pytest.raises(KubeError) as err:
+        replay.read(kind, NS, name)
+    assert not isinstance(err.value, NotRecorded)
+    assert (err.value.status, err.value.message) == (404, message)
+
+
+def test_logs_of_an_unknown_pod_are_not_found_and_unknown_services_have_no_endpoints() -> None:
+    replay = ReplayReader(complete())
+    with pytest.raises(KubeError, match='pods "ghost" not found') as err:
+        replay.read_log(NS, "ghost", container=None, previous=False, tail=10)
+    assert not isinstance(err.value, NotRecorded)
+    assert replay.list_endpoint_slices(NS, "no-such-service") == []
+
+
+def test_other_unrecorded_questions_still_say_so() -> None:
+    replay = ReplayReader(complete())
+    with pytest.raises(NotRecorded):
+        replay.access_review(
+            NS, user="u", groups=[], verb="delete", resource="pods", group="", subresource=""
+        )
+    with pytest.raises(NotRecorded):
+        replay.list_pods("another-namespace")
+
+
+def test_an_older_recording_without_the_inventory_still_says_not_recorded() -> None:
+    old = recording(TinyReader())
+    assert not old.inventory_complete
+    with pytest.raises(NotRecorded):
+        ReplayReader(old).read("role", NS, "reporter")

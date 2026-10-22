@@ -47,9 +47,14 @@ def _normalize(text: str) -> str:
     - `\\"` becomes `"`: logs often carry JSON with escaped quotes, and models
       quote them with plain ones.
     - `''` becomes `'`: YAML doubles single quotes inside single-quoted strings.
-    Case and every other character must match exactly.
+    - `\\n` and `\\t` become spaces: YAML shows a multi-line string (a script, a
+      log message) as one double-quoted line with escapes, and models quote it as
+      it reads, with real line breaks (DECISIONS.md 038).
+    Case and every other character must match exactly, and lines must still be
+    next to each other in the output: unescaping doesn't let joined lines through.
     """
     text = text.replace('\\"', '"').replace("''", "'")
+    text = text.replace("\\n", " ").replace("\\t", " ")
     return " ".join(text.split())
 
 

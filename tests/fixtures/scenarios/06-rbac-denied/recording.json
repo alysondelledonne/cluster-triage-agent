@@ -1,9 +1,10 @@
 {
  "scenario": "06-rbac-denied",
  "namespace": "triage-06-rbac-denied",
- "recorded_at": "2026-10-20T21:27:16+00:00",
+ "recorded_at": "2026-10-22T04:20:34+00:00",
  "server_version": "v1.37.0",
  "agent_user": "system:serviceaccount:triage-system:triage-agent",
+ "inventory_complete": true,
  "calls": [
   {
    "method": "whoami",
@@ -19,7 +20,7 @@
    "result": [
     {
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:26:58+00:00",
+      "creationTimestamp": "2026-10-22T04:20:15+00:00",
       "generateName": "reporter-75dd647696-",
       "generation": 1,
       "labels": {
@@ -40,7 +41,7 @@
           },
           "f:ownerReferences": {
            ".": {},
-           "k:{\"uid\":\"a4a996af-5d37-4f5e-96f1-a807dd22ec65\"}": {}
+           "k:{\"uid\":\"8bfcd623-b35a-4a67-81a3-60585da214b5\"}": {}
           }
          },
          "f:spec": {
@@ -81,7 +82,7 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:26:58+00:00"
+        "time": "2026-10-22T04:20:15+00:00"
        },
        {
         "apiVersion": "v1",
@@ -138,7 +139,7 @@
           "f:podIP": {},
           "f:podIPs": {
            ".": {},
-           "k:{\"ip\":\"10.244.0.17\"}": {
+           "k:{\"ip\":\"10.244.0.33\"}": {
             ".": {},
             "f:ip": {}
            }
@@ -162,10 +163,10 @@
         "manager": "kubelet",
         "operation": "Update",
         "subresource": "status",
-        "time": "2026-10-20T21:26:59+00:00"
+        "time": "2026-10-22T04:20:16+00:00"
        }
       ],
-      "name": "reporter-75dd647696-4js94",
+      "name": "reporter-75dd647696-tjn9p",
       "namespace": "triage-06-rbac-denied",
       "ownerReferences": [
        {
@@ -174,11 +175,11 @@
         "controller": true,
         "kind": "ReplicaSet",
         "name": "reporter-75dd647696",
-        "uid": "a4a996af-5d37-4f5e-96f1-a807dd22ec65"
+        "uid": "8bfcd623-b35a-4a67-81a3-60585da214b5"
        }
       ],
-      "resourceVersion": "10249",
-      "uid": "e64aab4a-5ce2-4af6-9ebb-9210c0bd1881"
+      "resourceVersion": "83973",
+      "uid": "29cb8be1-388d-4c45-897c-571ec7cf6aaf"
      },
      "spec": {
       "containers": [
@@ -208,7 +209,7 @@
         "volumeMounts": [
          {
           "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-          "name": "kube-api-access-7zkxq",
+          "name": "kube-api-access-2xfsw",
           "readOnly": true
          }
         ]
@@ -241,7 +242,7 @@
       ],
       "volumes": [
        {
-        "name": "kube-api-access-7zkxq",
+        "name": "kube-api-access-2xfsw",
         "projected": {
          "defaultMode": 420,
          "sources": [
@@ -287,31 +288,31 @@
       },
       "conditions": [
        {
-        "lastTransitionTime": "2026-10-20T21:26:59+00:00",
+        "lastTransitionTime": "2026-10-22T04:20:16+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "PodReadyToStartContainers"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:26:58+00:00",
+        "lastTransitionTime": "2026-10-22T04:20:15+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "Initialized"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:26:59+00:00",
+        "lastTransitionTime": "2026-10-22T04:20:16+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "Ready"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:26:59+00:00",
+        "lastTransitionTime": "2026-10-22T04:20:16+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "ContainersReady"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:26:58+00:00",
+        "lastTransitionTime": "2026-10-22T04:20:15+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "PodScheduled"
@@ -323,7 +324,7 @@
          "cpu": "10m",
          "memory": "16Mi"
         },
-        "containerID": "containerd://6b1eeab650bac95d00d0fd75964bfb42a151e96729ab22b7d38124de7fe63666",
+        "containerID": "containerd://6d503f8c6819c6acdfeee66eb2bf98ec0d6eaff12d986b0f95e5b957bc5781f3",
         "image": "docker.io/curlimages/curl:8.11.1",
         "imageID": "docker.io/curlimages/curl@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69",
         "lastState": {},
@@ -343,7 +344,7 @@
         "started": true,
         "state": {
          "running": {
-          "startedAt": "2026-10-20T21:26:59+00:00"
+          "startedAt": "2026-10-22T04:20:16+00:00"
          }
         },
         "user": {
@@ -358,7 +359,7 @@
         "volumeMounts": [
          {
           "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-          "name": "kube-api-access-7zkxq",
+          "name": "kube-api-access-2xfsw",
           "readOnly": true,
           "recursiveReadOnly": "Disabled"
          }
@@ -373,10 +374,10 @@
       ],
       "observedGeneration": 1,
       "phase": "Running",
-      "podIP": "10.244.0.17",
+      "podIP": "10.244.0.33",
       "podIPs": [
        {
-        "ip": "10.244.0.17"
+        "ip": "10.244.0.33"
        }
       ],
       "qosClass": "Burstable",
@@ -390,7 +391,7 @@
         "memory": "16Mi"
        }
       },
-      "startTime": "2026-10-20T21:26:58+00:00"
+      "startTime": "2026-10-22T04:20:15+00:00"
      }
     }
    ],
@@ -404,19 +405,19 @@
    "result": [
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:26:58+00:00",
+     "firstTimestamp": "2026-10-22T04:20:15+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "kind": "Pod",
-      "name": "reporter-75dd647696-4js94",
+      "name": "reporter-75dd647696-tjn9p",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10234",
-      "uid": "e64aab4a-5ce2-4af6-9ebb-9210c0bd1881"
+      "resourceVersion": "83960",
+      "uid": "29cb8be1-388d-4c45-897c-571ec7cf6aaf"
      },
-     "lastTimestamp": "2026-10-20T21:26:58+00:00",
-     "message": "Successfully assigned triage-06-rbac-denied/reporter-75dd647696-4js94 to triage-control-plane",
+     "lastTimestamp": "2026-10-22T04:20:15+00:00",
+     "message": "Successfully assigned triage-06-rbac-denied/reporter-75dd647696-tjn9p to triage-control-plane",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:26:58+00:00",
+      "creationTimestamp": "2026-10-22T04:20:15+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -436,13 +437,13 @@
         },
         "manager": "kube-scheduler",
         "operation": "Update",
-        "time": "2026-10-20T21:26:58+00:00"
+        "time": "2026-10-22T04:20:15+00:00"
        }
       ],
-      "name": "reporter-75dd647696-4js94.18e05a028fe86740",
+      "name": "reporter-75dd647696-tjn9p.18e0bf24a61c470d",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10239",
-      "uid": "ec6db4f2-44ba-41cd-ab7f-fdd882e2a0ab"
+      "resourceVersion": "83966",
+      "uid": "dfe513ce-7e53-4783-89f7-f0b4683dd680"
      },
      "reason": "Scheduled",
      "reportingComponent": "default-scheduler",
@@ -454,20 +455,20 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:26:59+00:00",
+     "firstTimestamp": "2026-10-22T04:20:16+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{reporter}",
       "kind": "Pod",
-      "name": "reporter-75dd647696-4js94",
+      "name": "reporter-75dd647696-tjn9p",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10235",
-      "uid": "e64aab4a-5ce2-4af6-9ebb-9210c0bd1881"
+      "resourceVersion": "83964",
+      "uid": "29cb8be1-388d-4c45-897c-571ec7cf6aaf"
      },
-     "lastTimestamp": "2026-10-20T21:26:59+00:00",
+     "lastTimestamp": "2026-10-22T04:20:16+00:00",
      "message": "Container image \"curlimages/curl:8.11.1\" already present on machine and can be accessed by the pod",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:26:59+00:00",
+      "creationTimestamp": "2026-10-22T04:20:16+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -489,13 +490,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:26:59+00:00"
+        "time": "2026-10-22T04:20:16+00:00"
        }
       ],
-      "name": "reporter-75dd647696-4js94.18e05a02aa2b4d6d",
+      "name": "reporter-75dd647696-tjn9p.18e0bf24c87c4e2e",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10245",
-      "uid": "6ba59f1b-c4c1-4908-88c4-7458d2b04098"
+      "resourceVersion": "83969",
+      "uid": "443f769f-e9a9-410d-9e35-8c9e32c012f7"
      },
      "reason": "Pulled",
      "reportingComponent": "kubelet",
@@ -508,20 +509,20 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:26:59+00:00",
+     "firstTimestamp": "2026-10-22T04:20:16+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{reporter}",
       "kind": "Pod",
-      "name": "reporter-75dd647696-4js94",
+      "name": "reporter-75dd647696-tjn9p",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10235",
-      "uid": "e64aab4a-5ce2-4af6-9ebb-9210c0bd1881"
+      "resourceVersion": "83964",
+      "uid": "29cb8be1-388d-4c45-897c-571ec7cf6aaf"
      },
-     "lastTimestamp": "2026-10-20T21:26:59+00:00",
+     "lastTimestamp": "2026-10-22T04:20:16+00:00",
      "message": "Container created",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:26:59+00:00",
+      "creationTimestamp": "2026-10-22T04:20:16+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -543,13 +544,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:26:59+00:00"
+        "time": "2026-10-22T04:20:16+00:00"
        }
       ],
-      "name": "reporter-75dd647696-4js94.18e05a02aaae5abe",
+      "name": "reporter-75dd647696-tjn9p.18e0bf24c9983e02",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10247",
-      "uid": "f1186d43-5868-4cfd-8909-efd1e1fe4bdf"
+      "resourceVersion": "83971",
+      "uid": "722ce1a9-b6ab-44f7-a108-6343436a4149"
      },
      "reason": "Created",
      "reportingComponent": "kubelet",
@@ -562,20 +563,20 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:26:59+00:00",
+     "firstTimestamp": "2026-10-22T04:20:16+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{reporter}",
       "kind": "Pod",
-      "name": "reporter-75dd647696-4js94",
+      "name": "reporter-75dd647696-tjn9p",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10235",
-      "uid": "e64aab4a-5ce2-4af6-9ebb-9210c0bd1881"
+      "resourceVersion": "83964",
+      "uid": "29cb8be1-388d-4c45-897c-571ec7cf6aaf"
      },
-     "lastTimestamp": "2026-10-20T21:26:59+00:00",
+     "lastTimestamp": "2026-10-22T04:20:16+00:00",
      "message": "Container started",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:26:59+00:00",
+      "creationTimestamp": "2026-10-22T04:20:16+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -597,13 +598,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:26:59+00:00"
+        "time": "2026-10-22T04:20:16+00:00"
        }
       ],
-      "name": "reporter-75dd647696-4js94.18e05a02b5b895e1",
+      "name": "reporter-75dd647696-tjn9p.18e0bf24d43823a0",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10248",
-      "uid": "e6716872-ba66-4d36-a929-74e5ac0058d8"
+      "resourceVersion": "83972",
+      "uid": "d596b754-f81c-4316-8f49-0351e7ab850b"
      },
      "reason": "Started",
      "reportingComponent": "kubelet",
@@ -616,19 +617,19 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:26:58+00:00",
+     "firstTimestamp": "2026-10-22T04:20:15+00:00",
      "involvedObject": {
       "apiVersion": "apps/v1",
       "kind": "ReplicaSet",
       "name": "reporter-75dd647696",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10231",
-      "uid": "a4a996af-5d37-4f5e-96f1-a807dd22ec65"
+      "resourceVersion": "83957",
+      "uid": "8bfcd623-b35a-4a67-81a3-60585da214b5"
      },
-     "lastTimestamp": "2026-10-20T21:26:58+00:00",
-     "message": "Created pod: reporter-75dd647696-4js94",
+     "lastTimestamp": "2026-10-22T04:20:15+00:00",
+     "message": "Created pod: reporter-75dd647696-tjn9p",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:26:58+00:00",
+      "creationTimestamp": "2026-10-22T04:20:15+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -648,13 +649,13 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:26:58+00:00"
+        "time": "2026-10-22T04:20:15+00:00"
        }
       ],
-      "name": "reporter-75dd647696.18e05a028fbd313d",
+      "name": "reporter-75dd647696.18e0bf24a5cd563b",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10237",
-      "uid": "e699be46-8dbc-48b9-92af-4847dd26ceb1"
+      "resourceVersion": "83961",
+      "uid": "4f3126d3-2683-4274-860e-33bb3ac63d83"
      },
      "reason": "SuccessfulCreate",
      "reportingComponent": "replicaset-controller",
@@ -666,19 +667,19 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:26:58+00:00",
+     "firstTimestamp": "2026-10-22T04:20:15+00:00",
      "involvedObject": {
       "apiVersion": "apps/v1",
       "kind": "Deployment",
       "name": "reporter",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10230",
-      "uid": "146bddf0-3be7-42b4-9d31-31d46f256112"
+      "resourceVersion": "83956",
+      "uid": "c5692f90-eff9-49c2-a4b9-91c0300acc41"
      },
-     "lastTimestamp": "2026-10-20T21:26:58+00:00",
+     "lastTimestamp": "2026-10-22T04:20:15+00:00",
      "message": "Scaled up replica set reporter-75dd647696 from 0 to 1",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:26:58+00:00",
+      "creationTimestamp": "2026-10-22T04:20:15+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -698,13 +699,13 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:26:58+00:00"
+        "time": "2026-10-22T04:20:15+00:00"
        }
       ],
-      "name": "reporter.18e05a028f6a6617",
+      "name": "reporter.18e0bf24a57d2f30",
       "namespace": "triage-06-rbac-denied",
-      "resourceVersion": "10232",
-      "uid": "43582a24-ef19-42a1-9178-a8028c9a3789"
+      "resourceVersion": "83958",
+      "uid": "807d46b1-e7e0-4750-bc5b-05acc0709a56"
      },
      "reason": "ScalingReplicaSet",
      "reportingComponent": "deployment-controller",
@@ -722,13 +723,13 @@
    "args": {
     "kind": "pod",
     "namespace": "triage-06-rbac-denied",
-    "name": "reporter-75dd647696-4js94"
+    "name": "reporter-75dd647696-tjn9p"
    },
    "result": {
     "apiVersion": "v1",
     "kind": "Pod",
     "metadata": {
-     "creationTimestamp": "2026-10-20T21:26:58+00:00",
+     "creationTimestamp": "2026-10-22T04:20:15+00:00",
      "generateName": "reporter-75dd647696-",
      "generation": 1,
      "labels": {
@@ -749,7 +750,7 @@
          },
          "f:ownerReferences": {
           ".": {},
-          "k:{\"uid\":\"a4a996af-5d37-4f5e-96f1-a807dd22ec65\"}": {}
+          "k:{\"uid\":\"8bfcd623-b35a-4a67-81a3-60585da214b5\"}": {}
          }
         },
         "f:spec": {
@@ -790,7 +791,7 @@
        },
        "manager": "kube-controller-manager",
        "operation": "Update",
-       "time": "2026-10-20T21:26:58+00:00"
+       "time": "2026-10-22T04:20:15+00:00"
       },
       {
        "apiVersion": "v1",
@@ -847,7 +848,7 @@
          "f:podIP": {},
          "f:podIPs": {
           ".": {},
-          "k:{\"ip\":\"10.244.0.17\"}": {
+          "k:{\"ip\":\"10.244.0.33\"}": {
            ".": {},
            "f:ip": {}
           }
@@ -871,10 +872,10 @@
        "manager": "kubelet",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:26:59+00:00"
+       "time": "2026-10-22T04:20:16+00:00"
       }
      ],
-     "name": "reporter-75dd647696-4js94",
+     "name": "reporter-75dd647696-tjn9p",
      "namespace": "triage-06-rbac-denied",
      "ownerReferences": [
       {
@@ -883,11 +884,11 @@
        "controller": true,
        "kind": "ReplicaSet",
        "name": "reporter-75dd647696",
-       "uid": "a4a996af-5d37-4f5e-96f1-a807dd22ec65"
+       "uid": "8bfcd623-b35a-4a67-81a3-60585da214b5"
       }
      ],
-     "resourceVersion": "10249",
-     "uid": "e64aab4a-5ce2-4af6-9ebb-9210c0bd1881"
+     "resourceVersion": "83973",
+     "uid": "29cb8be1-388d-4c45-897c-571ec7cf6aaf"
     },
     "spec": {
      "containers": [
@@ -917,7 +918,7 @@
        "volumeMounts": [
         {
          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-         "name": "kube-api-access-7zkxq",
+         "name": "kube-api-access-2xfsw",
          "readOnly": true
         }
        ]
@@ -950,7 +951,7 @@
      ],
      "volumes": [
       {
-       "name": "kube-api-access-7zkxq",
+       "name": "kube-api-access-2xfsw",
        "projected": {
         "defaultMode": 420,
         "sources": [
@@ -996,31 +997,31 @@
      },
      "conditions": [
       {
-       "lastTransitionTime": "2026-10-20T21:26:59+00:00",
+       "lastTransitionTime": "2026-10-22T04:20:16+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "PodReadyToStartContainers"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:26:58+00:00",
+       "lastTransitionTime": "2026-10-22T04:20:15+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "Initialized"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:26:59+00:00",
+       "lastTransitionTime": "2026-10-22T04:20:16+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "Ready"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:26:59+00:00",
+       "lastTransitionTime": "2026-10-22T04:20:16+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "ContainersReady"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:26:58+00:00",
+       "lastTransitionTime": "2026-10-22T04:20:15+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "PodScheduled"
@@ -1032,7 +1033,7 @@
         "cpu": "10m",
         "memory": "16Mi"
        },
-       "containerID": "containerd://6b1eeab650bac95d00d0fd75964bfb42a151e96729ab22b7d38124de7fe63666",
+       "containerID": "containerd://6d503f8c6819c6acdfeee66eb2bf98ec0d6eaff12d986b0f95e5b957bc5781f3",
        "image": "docker.io/curlimages/curl:8.11.1",
        "imageID": "docker.io/curlimages/curl@sha256:c1fe1679c34d9784c1b0d1e5f62ac0a79fca01fb6377cdd33e90473c6f9f9a69",
        "lastState": {},
@@ -1052,7 +1053,7 @@
        "started": true,
        "state": {
         "running": {
-         "startedAt": "2026-10-20T21:26:59+00:00"
+         "startedAt": "2026-10-22T04:20:16+00:00"
         }
        },
        "user": {
@@ -1067,7 +1068,7 @@
        "volumeMounts": [
         {
          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-         "name": "kube-api-access-7zkxq",
+         "name": "kube-api-access-2xfsw",
          "readOnly": true,
          "recursiveReadOnly": "Disabled"
         }
@@ -1082,10 +1083,10 @@
      ],
      "observedGeneration": 1,
      "phase": "Running",
-     "podIP": "10.244.0.17",
+     "podIP": "10.244.0.33",
      "podIPs": [
       {
-       "ip": "10.244.0.17"
+       "ip": "10.244.0.33"
       }
      ],
      "qosClass": "Burstable",
@@ -1099,7 +1100,7 @@
        "memory": "16Mi"
       }
      },
-     "startTime": "2026-10-20T21:26:58+00:00"
+     "startTime": "2026-10-22T04:20:15+00:00"
     }
    },
    "error": null
@@ -1120,7 +1121,7 @@
       "deployment.kubernetes.io/max-replicas": "2",
       "deployment.kubernetes.io/revision": "1"
      },
-     "creationTimestamp": "2026-10-20T21:26:58+00:00",
+     "creationTimestamp": "2026-10-22T04:20:15+00:00",
      "generation": 1,
      "labels": {
       "app": "reporter",
@@ -1145,7 +1146,7 @@
          },
          "f:ownerReferences": {
           ".": {},
-          "k:{\"uid\":\"146bddf0-3be7-42b4-9d31-31d46f256112\"}": {}
+          "k:{\"uid\":\"c5692f90-eff9-49c2-a4b9-91c0300acc41\"}": {}
          }
         },
         "f:spec": {
@@ -1198,7 +1199,7 @@
        },
        "manager": "kube-controller-manager",
        "operation": "Update",
-       "time": "2026-10-20T21:26:58+00:00"
+       "time": "2026-10-22T04:20:15+00:00"
       },
       {
        "apiVersion": "apps/v1",
@@ -1216,7 +1217,7 @@
        "manager": "kube-controller-manager",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:26:59+00:00"
+       "time": "2026-10-22T04:20:16+00:00"
       }
      ],
      "name": "reporter-75dd647696",
@@ -1228,11 +1229,11 @@
        "controller": true,
        "kind": "Deployment",
        "name": "reporter",
-       "uid": "146bddf0-3be7-42b4-9d31-31d46f256112"
+       "uid": "c5692f90-eff9-49c2-a4b9-91c0300acc41"
       }
      ],
-     "resourceVersion": "10250",
-     "uid": "a4a996af-5d37-4f5e-96f1-a807dd22ec65"
+     "resourceVersion": "83974",
+     "uid": "8bfcd623-b35a-4a67-81a3-60585da214b5"
     },
     "spec": {
      "replicas": 1,
@@ -1301,19 +1302,19 @@
    "method": "read_log",
    "args": {
     "namespace": "triage-06-rbac-denied",
-    "pod": "reporter-75dd647696-4js94",
+    "pod": "reporter-75dd647696-tjn9p",
     "container": "reporter",
     "previous": false,
     "tail": 200
    },
-   "result": "2026-10-20T21:26:59Z loading settings from configmap report-settings\n{\n  \"kind\": \"Status\",\n  \"apiVersion\": \"v1\",\n  \"metadata\": {},\n  \"status\": \"Failure\",\n  \"message\": \"configmaps \\\"report-settings\\\" is forbidden: User \\\"system:serviceaccount:triage-06-rbac-denied:reporter\\\" cannot get resource \\\"configmaps\\\" in API group \\\"\\\" in the namespace \\\"triage-06-rbac-denied\\\"\",\n  \"reason\": \"Forbidden\",\n  \"details\": {\n    \"name\": \"report-settings\",\n    \"kind\": \"configmaps\"\n  },\n  \"code\": 403\n}\n2026-10-20T21:27:14Z loading settings from configmap report-settings\n{\n  \"kind\": \"Status\",\n  \"apiVersion\": \"v1\",\n  \"metadata\": {},\n  \"status\": \"Failure\",\n  \"message\": \"configmaps \\\"report-settings\\\" is forbidden: User \\\"system:serviceaccount:triage-06-rbac-denied:reporter\\\" cannot get resource \\\"configmaps\\\" in API group \\\"\\\" in the namespace \\\"triage-06-rbac-denied\\\"\",\n  \"reason\": \"Forbidden\",\n  \"details\": {\n    \"name\": \"report-settings\",\n    \"kind\": \"configmaps\"\n  },\n  \"code\": 403\n}\n",
+   "result": "2026-10-22T04:20:16Z loading settings from configmap report-settings\n{\n  \"kind\": \"Status\",\n  \"apiVersion\": \"v1\",\n  \"metadata\": {},\n  \"status\": \"Failure\",\n  \"message\": \"configmaps \\\"report-settings\\\" is forbidden: User \\\"system:serviceaccount:triage-06-rbac-denied:reporter\\\" cannot get resource \\\"configmaps\\\" in API group \\\"\\\" in the namespace \\\"triage-06-rbac-denied\\\"\",\n  \"reason\": \"Forbidden\",\n  \"details\": {\n    \"name\": \"report-settings\",\n    \"kind\": \"configmaps\"\n  },\n  \"code\": 403\n}\n2026-10-22T04:20:32Z loading settings from configmap report-settings\n{\n  \"kind\": \"Status\",\n  \"apiVersion\": \"v1\",\n  \"metadata\": {},\n  \"status\": \"Failure\",\n  \"message\": \"configmaps \\\"report-settings\\\" is forbidden: User \\\"system:serviceaccount:triage-06-rbac-denied:reporter\\\" cannot get resource \\\"configmaps\\\" in API group \\\"\\\" in the namespace \\\"triage-06-rbac-denied\\\"\",\n  \"reason\": \"Forbidden\",\n  \"details\": {\n    \"name\": \"report-settings\",\n    \"kind\": \"configmaps\"\n  },\n  \"code\": 403\n}\n",
    "error": null
   },
   {
    "method": "read_log",
    "args": {
     "namespace": "triage-06-rbac-denied",
-    "pod": "reporter-75dd647696-4js94",
+    "pod": "reporter-75dd647696-tjn9p",
     "container": "reporter",
     "previous": true,
     "tail": 200
@@ -1321,7 +1322,7 @@
    "result": null,
    "error": {
     "status": 400,
-    "message": "previous terminated container \"reporter\" in pod \"reporter-75dd647696-4js94\" not found"
+    "message": "previous terminated container \"reporter\" in pod \"reporter-75dd647696-tjn9p\" not found"
    }
   },
   {
@@ -1338,7 +1339,7 @@
      "annotations": {
       "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"ServiceAccount\",\"metadata\":{\"annotations\":{},\"name\":\"reporter\",\"namespace\":\"triage-06-rbac-denied\"}}\n"
      },
-     "creationTimestamp": "2026-10-20T21:26:58+00:00",
+     "creationTimestamp": "2026-10-22T04:20:15+00:00",
      "managedFields": [
       {
        "apiVersion": "v1",
@@ -1353,13 +1354,13 @@
        },
        "manager": "kubectl-client-side-apply",
        "operation": "Update",
-       "time": "2026-10-20T21:26:58+00:00"
+       "time": "2026-10-22T04:20:15+00:00"
       }
      ],
      "name": "reporter",
      "namespace": "triage-06-rbac-denied",
-     "resourceVersion": "10228",
-     "uid": "e8a5ecc4-7cb4-4bd4-b77c-ffcf9a7d8143"
+     "resourceVersion": "83954",
+     "uid": "f7ba7072-d077-497c-8c75-417ef70e015c"
     }
    },
    "error": null
@@ -1381,7 +1382,7 @@
      "annotations": {
       "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"data\":{\"schedule\":\"hourly\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"name\":\"report-settings\",\"namespace\":\"triage-06-rbac-denied\"}}\n"
      },
-     "creationTimestamp": "2026-10-20T21:26:58+00:00",
+     "creationTimestamp": "2026-10-22T04:20:15+00:00",
      "managedFields": [
       {
        "apiVersion": "v1",
@@ -1400,13 +1401,13 @@
        },
        "manager": "kubectl-client-side-apply",
        "operation": "Update",
-       "time": "2026-10-20T21:26:58+00:00"
+       "time": "2026-10-22T04:20:15+00:00"
       }
      ],
      "name": "report-settings",
      "namespace": "triage-06-rbac-denied",
-     "resourceVersion": "10229",
-     "uid": "55008433-918f-4176-b5d5-4109b04f5914"
+     "resourceVersion": "83955",
+     "uid": "e6bfc215-0acf-4265-8149-0951b648359a"
     }
    },
    "error": null
@@ -1426,7 +1427,7 @@
       "deployment.kubernetes.io/revision": "1",
       "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"name\":\"reporter\",\"namespace\":\"triage-06-rbac-denied\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"reporter\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"reporter\"}},\"spec\":{\"containers\":[{\"args\":[\"SA=/var/run/secrets/kubernetes.io/serviceaccount\\nNS=$(cat $SA/namespace)\\nwhile true; do\\n  echo \\\"$(date -u +%Y-%m-%dT%H:%M:%SZ) loading settings from configmap report-settings\\\"\\n  curl -sS --cacert $SA/ca.crt -H \\\"Authorization: Bearer $(cat $SA/token)\\\" \\\\\\n    https://kubernetes.default.svc/api/v1/namespaces/$NS/configmaps/report-settings\\n  echo\\n  sleep 15\\ndone\\n\"],\"command\":[\"sh\",\"-c\"],\"image\":\"curlimages/curl:8.11.1\",\"name\":\"reporter\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"32Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}}}],\"serviceAccountName\":\"reporter\"}}}}\n"
      },
-     "creationTimestamp": "2026-10-20T21:26:58+00:00",
+     "creationTimestamp": "2026-10-22T04:20:15+00:00",
      "generation": 1,
      "managedFields": [
       {
@@ -1498,7 +1499,7 @@
        },
        "manager": "kubectl-client-side-apply",
        "operation": "Update",
-       "time": "2026-10-20T21:26:58+00:00"
+       "time": "2026-10-22T04:20:15+00:00"
       },
       {
        "apiVersion": "apps/v1",
@@ -1542,13 +1543,13 @@
        "manager": "kube-controller-manager",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:26:59+00:00"
+       "time": "2026-10-22T04:20:16+00:00"
       }
      ],
      "name": "reporter",
      "namespace": "triage-06-rbac-denied",
-     "resourceVersion": "10251",
-     "uid": "146bddf0-3be7-42b4-9d31-31d46f256112"
+     "resourceVersion": "83975",
+     "uid": "c5692f90-eff9-49c2-a4b9-91c0300acc41"
     },
     "spec": {
      "progressDeadlineSeconds": 600,
@@ -1613,16 +1614,16 @@
      "availableReplicas": 1,
      "conditions": [
       {
-       "lastTransitionTime": "2026-10-20T21:26:59+00:00",
-       "lastUpdateTime": "2026-10-20T21:26:59+00:00",
+       "lastTransitionTime": "2026-10-22T04:20:16+00:00",
+       "lastUpdateTime": "2026-10-22T04:20:16+00:00",
        "message": "Deployment has minimum availability.",
        "reason": "MinimumReplicasAvailable",
        "status": "True",
        "type": "Available"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:26:58+00:00",
-       "lastUpdateTime": "2026-10-20T21:26:59+00:00",
+       "lastTransitionTime": "2026-10-22T04:20:15+00:00",
+       "lastUpdateTime": "2026-10-22T04:20:16+00:00",
        "message": "ReplicaSet \"reporter-75dd647696\" has successfully progressed.",
        "reason": "NewReplicaSetAvailable",
        "status": "True",
@@ -1634,6 +1635,73 @@
      "replicas": 1,
      "terminatingReplicas": 0,
      "updatedReplicas": 1
+    }
+   },
+   "error": null
+  },
+  {
+   "method": "read",
+   "args": {
+    "kind": "serviceaccount",
+    "namespace": "triage-06-rbac-denied",
+    "name": "default"
+   },
+   "result": {
+    "apiVersion": "v1",
+    "kind": "ServiceAccount",
+    "metadata": {
+     "creationTimestamp": "2026-10-22T04:20:15+00:00",
+     "name": "default",
+     "namespace": "triage-06-rbac-denied",
+     "resourceVersion": "83953",
+     "uid": "ef34da47-95fa-4469-9b20-761457391600"
+    }
+   },
+   "error": null
+  },
+  {
+   "method": "read",
+   "args": {
+    "kind": "configmap",
+    "namespace": "triage-06-rbac-denied",
+    "name": "kube-root-ca.crt"
+   },
+   "result": {
+    "apiVersion": "v1",
+    "data": {
+     "ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDBTCCAe2gAwIBAgIIc/Eloyr7R2UwDQYJKoZIhvcNAQELBQAwFTETMBEGA1UE\nAxMKa3ViZXJuZXRlczAeFw0yNjEwMjAxOTM1MjNaFw0zNjEwMTcxOTQwMjNaMBUx\nEzARBgNVBAMTCmt1YmVybmV0ZXMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQCcuII5I/WZquI4PZaFXwNDaa3vovUz/j4l86mipaLm3f2HTshS2NueN3YS\n7vSm1Zn5EI/dEJQTcsPwkt/gLqcgCN0ZzXkfYhakmTsoIF4pYcSEpDXsl4BQdYd8\njjw/tYF24czyoNqaCihEC4T9pFW0FMwgJHFUQLiZFHkjUBj14svJ8fGhFyN/pljh\nkQTt36RJ8cVqPRvCUJlcve5X6acOPxwGVfBxCHuornbdg0Jbq7bRDU3B/GRR4qlt\nT/VCLISJgmdVAxL9ktKobYEtxovtRAt9ksOX11sHV3pa55lTK0Y5wMhO+asIdP6R\nlqlqy1iZNQr7PN1foXj/g/tguUgDAgMBAAGjWTBXMA4GA1UdDwEB/wQEAwICpDAP\nBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTzsktA+uZLZSSbmdy6bzzVkcZujTAV\nBgNVHREEDjAMggprdWJlcm5ldGVzMA0GCSqGSIb3DQEBCwUAA4IBAQA6z+/lGz/1\nSCdWnRY9AIB7CJe1sGE8zktqjJE3iBEwMK3RRexJE0DO6Dx+MqrmYFqK2b0Ktb2d\nScSYMxC8tO5+g9YNWusd5Xf/qPdELvf/rW9kur5WrR83JrBUnlfLABJXiObKDsrX\nqLOvrid6XbhxdeK09HoM3/nWAMiGE/7c493eh4N6Ofxk5wgHICQszF+nVYufxr5b\nXDM6hviyrYucxFXKvlKD/JQtCbQ6q0dxwCc0jygSsN3ajKuoov/ckQ9ssMbAEwlF\nec2EapBfmXvZBYZaJYv0ZTAxhFtt0cowjtY/ti2Qe6PjDCjJ3RjBLTYe6wcJoAkr\nTmjtqTjyu0pj\n-----END CERTIFICATE-----\n"
+    },
+    "kind": "ConfigMap",
+    "metadata": {
+     "annotations": {
+      "kubernetes.io/description": "Contains a CA bundle that can be used to verify the kube-apiserver when using internal endpoints such as the internal service IP or kubernetes.default.svc. No other usage is guaranteed across distributions of Kubernetes clusters."
+     },
+     "creationTimestamp": "2026-10-22T04:20:15+00:00",
+     "managedFields": [
+      {
+       "apiVersion": "v1",
+       "fieldsType": "FieldsV1",
+       "fieldsV1": {
+        "f:data": {
+         ".": {},
+         "f:ca.crt": {}
+        },
+        "f:metadata": {
+         "f:annotations": {
+          ".": {},
+          "f:kubernetes.io/description": {}
+         }
+        }
+       },
+       "manager": "kube-controller-manager",
+       "operation": "Update",
+       "time": "2026-10-22T04:20:15+00:00"
+      }
+     ],
+     "name": "kube-root-ca.crt",
+     "namespace": "triage-06-rbac-denied",
+     "resourceVersion": "83952",
+     "uid": "e902f1a1-1857-4c55-8bf7-5a128d86f172"
     }
    },
    "error": null

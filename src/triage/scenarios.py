@@ -291,6 +291,14 @@ DESCRIBABLE: dict[str, Kind] = {
     "RoleBinding": "rolebinding",
 }
 
+# Objects every namespace has, which `describe` can reach: the default ServiceAccount
+# and the cluster's CA bundle (public, not a Secret). Reading them completes the
+# inventory, so replay can answer any other name with "not found" (DECISIONS.md 038).
+BUILT_IN: list[tuple[Kind, str]] = [
+    ("serviceaccount", "default"),
+    ("configmap", "kube-root-ca.crt"),
+]
+
 # Permission questions asked for every ServiceAccount, for the agent's `can_i` tool.
 ACCESS_CHECKS = [("get", "configmaps"), ("list", "pods")]
 
@@ -358,6 +366,10 @@ def record_scenario(scenario: Scenario, reader: KubeReader, *, server_version: s
             attempt(rec.list_endpoint_slices, ns, name)
         if kind == "serviceaccount":
             accounts.add(name)
+
+    for kind, name in BUILT_IN:
+        attempt(rec.read, kind, ns, name)
+    rec.recording.inventory_complete = True
 
     for account in sorted(accounts):
         user, groups = service_account_subject(ns, account)

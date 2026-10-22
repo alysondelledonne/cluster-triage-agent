@@ -1,9 +1,10 @@
 {
  "scenario": "02-imagepull",
  "namespace": "triage-02-imagepull",
- "recorded_at": "2026-10-20T21:25:22+00:00",
+ "recorded_at": "2026-10-22T04:18:39+00:00",
  "server_version": "v1.37.0",
  "agent_user": "system:serviceaccount:triage-system:triage-agent",
+ "inventory_complete": true,
  "calls": [
   {
    "method": "whoami",
@@ -19,7 +20,7 @@
    "result": [
     {
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:03+00:00",
+      "creationTimestamp": "2026-10-22T04:18:20+00:00",
       "generateName": "web-57f5c4fd7c-",
       "generation": 1,
       "labels": {
@@ -40,7 +41,7 @@
           },
           "f:ownerReferences": {
            ".": {},
-           "k:{\"uid\":\"ac262312-c27c-4713-88d6-18c0afb8313a\"}": {}
+           "k:{\"uid\":\"f4f25667-3040-4d7f-b47e-7a6c1a4a9e99\"}": {}
           }
          },
          "f:spec": {
@@ -85,7 +86,7 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:25:03+00:00"
+        "time": "2026-10-22T04:18:20+00:00"
        },
        {
         "apiVersion": "v1",
@@ -145,7 +146,7 @@
           "f:podIP": {},
           "f:podIPs": {
            ".": {},
-           "k:{\"ip\":\"10.244.0.13\"}": {
+           "k:{\"ip\":\"10.244.0.29\"}": {
             ".": {},
             "f:ip": {}
            }
@@ -169,10 +170,10 @@
         "manager": "kubelet",
         "operation": "Update",
         "subresource": "status",
-        "time": "2026-10-20T21:25:18+00:00"
+        "time": "2026-10-22T04:18:34+00:00"
        }
       ],
-      "name": "web-57f5c4fd7c-vkcsj",
+      "name": "web-57f5c4fd7c-72n8v",
       "namespace": "triage-02-imagepull",
       "ownerReferences": [
        {
@@ -181,11 +182,11 @@
         "controller": true,
         "kind": "ReplicaSet",
         "name": "web-57f5c4fd7c",
-        "uid": "ac262312-c27c-4713-88d6-18c0afb8313a"
+        "uid": "f4f25667-3040-4d7f-b47e-7a6c1a4a9e99"
        }
       ],
-      "resourceVersion": "9873",
-      "uid": "1e49078b-b144-4d87-80ba-91ae519ea012"
+      "resourceVersion": "83597",
+      "uid": "7250542f-fad4-4f10-9259-b7a54574b804"
      },
      "spec": {
       "containers": [
@@ -214,7 +215,7 @@
         "volumeMounts": [
          {
           "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-          "name": "kube-api-access-7wrzl",
+          "name": "kube-api-access-2th2w",
           "readOnly": true
          }
         ]
@@ -247,7 +248,7 @@
       ],
       "volumes": [
        {
-        "name": "kube-api-access-7wrzl",
+        "name": "kube-api-access-2th2w",
         "projected": {
          "defaultMode": 420,
          "sources": [
@@ -293,19 +294,19 @@
       },
       "conditions": [
        {
-        "lastTransitionTime": "2026-10-20T21:25:04+00:00",
+        "lastTransitionTime": "2026-10-22T04:18:21+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "PodReadyToStartContainers"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:25:03+00:00",
+        "lastTransitionTime": "2026-10-22T04:18:20+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "Initialized"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:25:03+00:00",
+        "lastTransitionTime": "2026-10-22T04:18:20+00:00",
         "message": "containers with unready status: [web]",
         "observedGeneration": 1,
         "reason": "ContainersNotReady",
@@ -313,7 +314,7 @@
         "type": "Ready"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:25:03+00:00",
+        "lastTransitionTime": "2026-10-22T04:18:20+00:00",
         "message": "containers with unready status: [web]",
         "observedGeneration": 1,
         "reason": "ContainersNotReady",
@@ -321,7 +322,7 @@
         "type": "ContainersReady"
        },
        {
-        "lastTransitionTime": "2026-10-20T21:25:03+00:00",
+        "lastTransitionTime": "2026-10-22T04:18:20+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "PodScheduled"
@@ -345,7 +346,7 @@
         "volumeMounts": [
          {
           "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-          "name": "kube-api-access-7wrzl",
+          "name": "kube-api-access-2th2w",
           "readOnly": true,
           "recursiveReadOnly": "Disabled"
          }
@@ -360,10 +361,10 @@
       ],
       "observedGeneration": 1,
       "phase": "Pending",
-      "podIP": "10.244.0.13",
+      "podIP": "10.244.0.29",
       "podIPs": [
        {
-        "ip": "10.244.0.13"
+        "ip": "10.244.0.29"
        }
       ],
       "qosClass": "Burstable",
@@ -377,7 +378,7 @@
         "memory": "16Mi"
        }
       },
-      "startTime": "2026-10-20T21:25:03+00:00"
+      "startTime": "2026-10-22T04:18:20+00:00"
      }
     }
    ],
@@ -391,19 +392,19 @@
    "result": [
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:25:03+00:00",
+     "firstTimestamp": "2026-10-22T04:18:20+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "kind": "Pod",
-      "name": "web-57f5c4fd7c-vkcsj",
+      "name": "web-57f5c4fd7c-72n8v",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9837",
-      "uid": "1e49078b-b144-4d87-80ba-91ae519ea012"
+      "resourceVersion": "83559",
+      "uid": "7250542f-fad4-4f10-9259-b7a54574b804"
      },
-     "lastTimestamp": "2026-10-20T21:25:03+00:00",
-     "message": "Successfully assigned triage-02-imagepull/web-57f5c4fd7c-vkcsj to triage-control-plane",
+     "lastTimestamp": "2026-10-22T04:18:20+00:00",
+     "message": "Successfully assigned triage-02-imagepull/web-57f5c4fd7c-72n8v to triage-control-plane",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:03+00:00",
+      "creationTimestamp": "2026-10-22T04:18:20+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -423,13 +424,13 @@
         },
         "manager": "kube-scheduler",
         "operation": "Update",
-        "time": "2026-10-20T21:25:03+00:00"
+        "time": "2026-10-22T04:18:20+00:00"
        }
       ],
-      "name": "web-57f5c4fd7c-vkcsj.18e059e7d524c0c5",
+      "name": "web-57f5c4fd7c-72n8v.18e0bf09de9d539a",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9842",
-      "uid": "ae558070-d357-41c9-b4f6-87f6c6fb8158"
+      "resourceVersion": "83566",
+      "uid": "7077b229-bfd1-49f8-8446-40fbc1b3fd62"
      },
      "reason": "Scheduled",
      "reportingComponent": "default-scheduler",
@@ -441,20 +442,20 @@
     },
     {
      "count": 2,
-     "firstTimestamp": "2026-10-20T21:25:04+00:00",
+     "firstTimestamp": "2026-10-22T04:18:21+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{web}",
       "kind": "Pod",
-      "name": "web-57f5c4fd7c-vkcsj",
+      "name": "web-57f5c4fd7c-72n8v",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9841",
-      "uid": "1e49078b-b144-4d87-80ba-91ae519ea012"
+      "resourceVersion": "83560",
+      "uid": "7250542f-fad4-4f10-9259-b7a54574b804"
      },
-     "lastTimestamp": "2026-10-20T21:25:18+00:00",
+     "lastTimestamp": "2026-10-22T04:18:34+00:00",
      "message": "Pulling image \"nginx:1.0.0-does-not-exist\"",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:04+00:00",
+      "creationTimestamp": "2026-10-22T04:18:21+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -476,13 +477,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:25:18+00:00"
+        "time": "2026-10-22T04:18:34+00:00"
        }
       ],
-      "name": "web-57f5c4fd7c-vkcsj.18e059e7f8b171a0",
+      "name": "web-57f5c4fd7c-72n8v.18e0bf09ffc7efcb",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9872",
-      "uid": "73485ac3-01e7-414b-970b-9bc886d542f7"
+      "resourceVersion": "83596",
+      "uid": "e0c6050f-1aa9-474a-9ca5-bdfe01b736a6"
      },
      "reason": "Pulling",
      "reportingComponent": "kubelet",
@@ -495,20 +496,20 @@
     },
     {
      "count": 2,
-     "firstTimestamp": "2026-10-20T21:25:05+00:00",
+     "firstTimestamp": "2026-10-22T04:18:22+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{web}",
       "kind": "Pod",
-      "name": "web-57f5c4fd7c-vkcsj",
+      "name": "web-57f5c4fd7c-72n8v",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9841",
-      "uid": "1e49078b-b144-4d87-80ba-91ae519ea012"
+      "resourceVersion": "83560",
+      "uid": "7250542f-fad4-4f10-9259-b7a54574b804"
      },
-     "lastTimestamp": "2026-10-20T21:25:18+00:00",
+     "lastTimestamp": "2026-10-22T04:18:35+00:00",
      "message": "Failed to pull image \"nginx:1.0.0-does-not-exist\": rpc error: code = NotFound desc = failed to pull and unpack image \"docker.io/library/nginx:1.0.0-does-not-exist\": failed to resolve reference \"docker.io/library/nginx:1.0.0-does-not-exist\": docker.io/library/nginx:1.0.0-does-not-exist: not found",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:05+00:00",
+      "creationTimestamp": "2026-10-22T04:18:22+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -530,13 +531,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:25:18+00:00"
+        "time": "2026-10-22T04:18:35+00:00"
        }
       ],
-      "name": "web-57f5c4fd7c-vkcsj.18e059e81f2d6224",
+      "name": "web-57f5c4fd7c-72n8v.18e0bf0a35cee2c7",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9876",
-      "uid": "0fa59123-647c-4808-8042-49d72c00c8e6"
+      "resourceVersion": "83600",
+      "uid": "02d282f8-8ac0-4692-bc3f-5a5af5c50623"
      },
      "reason": "Failed",
      "reportingComponent": "kubelet",
@@ -549,20 +550,20 @@
     },
     {
      "count": 2,
-     "firstTimestamp": "2026-10-20T21:25:05+00:00",
+     "firstTimestamp": "2026-10-22T04:18:22+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{web}",
       "kind": "Pod",
-      "name": "web-57f5c4fd7c-vkcsj",
+      "name": "web-57f5c4fd7c-72n8v",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9841",
-      "uid": "1e49078b-b144-4d87-80ba-91ae519ea012"
+      "resourceVersion": "83560",
+      "uid": "7250542f-fad4-4f10-9259-b7a54574b804"
      },
-     "lastTimestamp": "2026-10-20T21:25:18+00:00",
+     "lastTimestamp": "2026-10-22T04:18:35+00:00",
      "message": "Error: ErrImagePull",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:05+00:00",
+      "creationTimestamp": "2026-10-22T04:18:22+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -584,13 +585,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:25:18+00:00"
+        "time": "2026-10-22T04:18:35+00:00"
        }
       ],
-      "name": "web-57f5c4fd7c-vkcsj.18e059e81f30a808",
+      "name": "web-57f5c4fd7c-72n8v.18e0bf0a35d3b1bc",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9877",
-      "uid": "1ca42aa5-aa6f-42a4-936e-ec231eaed1ad"
+      "resourceVersion": "83601",
+      "uid": "f07c2a14-ae55-4216-9093-9d0b4c93ffcd"
      },
      "reason": "Failed",
      "reportingComponent": "kubelet",
@@ -603,20 +604,20 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:25:05+00:00",
+     "firstTimestamp": "2026-10-22T04:18:22+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{web}",
       "kind": "Pod",
-      "name": "web-57f5c4fd7c-vkcsj",
+      "name": "web-57f5c4fd7c-72n8v",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9841",
-      "uid": "1e49078b-b144-4d87-80ba-91ae519ea012"
+      "resourceVersion": "83560",
+      "uid": "7250542f-fad4-4f10-9259-b7a54574b804"
      },
-     "lastTimestamp": "2026-10-20T21:25:05+00:00",
+     "lastTimestamp": "2026-10-22T04:18:22+00:00",
      "message": "Back-off pulling image \"nginx:1.0.0-does-not-exist\"",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:05+00:00",
+      "creationTimestamp": "2026-10-22T04:18:22+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -638,13 +639,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:25:05+00:00"
+        "time": "2026-10-22T04:18:22+00:00"
        }
       ],
-      "name": "web-57f5c4fd7c-vkcsj.18e059e8218cd742",
+      "name": "web-57f5c4fd7c-72n8v.18e0bf0a4f7eaee9",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9853",
-      "uid": "8cfcaa8b-ce22-406e-b5a7-320cc7bf6111"
+      "resourceVersion": "83574",
+      "uid": "96a80e18-e546-4d50-b5d3-22dd41f8360e"
      },
      "reason": "BackOff",
      "reportingComponent": "kubelet",
@@ -657,20 +658,20 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:25:05+00:00",
+     "firstTimestamp": "2026-10-22T04:18:22+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{web}",
       "kind": "Pod",
-      "name": "web-57f5c4fd7c-vkcsj",
+      "name": "web-57f5c4fd7c-72n8v",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9841",
-      "uid": "1e49078b-b144-4d87-80ba-91ae519ea012"
+      "resourceVersion": "83560",
+      "uid": "7250542f-fad4-4f10-9259-b7a54574b804"
      },
-     "lastTimestamp": "2026-10-20T21:25:05+00:00",
+     "lastTimestamp": "2026-10-22T04:18:22+00:00",
      "message": "Error: ImagePullBackOff",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:05+00:00",
+      "creationTimestamp": "2026-10-22T04:18:22+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -692,13 +693,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-20T21:25:05+00:00"
+        "time": "2026-10-22T04:18:22+00:00"
        }
       ],
-      "name": "web-57f5c4fd7c-vkcsj.18e059e8218f302b",
+      "name": "web-57f5c4fd7c-72n8v.18e0bf0a4f81a65a",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9855",
-      "uid": "8efd7f2b-7a32-46d0-a5e5-8ffc8490b681"
+      "resourceVersion": "83575",
+      "uid": "34cfd48b-cb87-4b0d-af4f-6027cec8a996"
      },
      "reason": "Failed",
      "reportingComponent": "kubelet",
@@ -711,19 +712,19 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:25:03+00:00",
+     "firstTimestamp": "2026-10-22T04:18:20+00:00",
      "involvedObject": {
       "apiVersion": "apps/v1",
       "kind": "ReplicaSet",
       "name": "web-57f5c4fd7c",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9834",
-      "uid": "ac262312-c27c-4713-88d6-18c0afb8313a"
+      "resourceVersion": "83556",
+      "uid": "f4f25667-3040-4d7f-b47e-7a6c1a4a9e99"
      },
-     "lastTimestamp": "2026-10-20T21:25:03+00:00",
-     "message": "Created pod: web-57f5c4fd7c-vkcsj",
+     "lastTimestamp": "2026-10-22T04:18:20+00:00",
+     "message": "Created pod: web-57f5c4fd7c-72n8v",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:03+00:00",
+      "creationTimestamp": "2026-10-22T04:18:20+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -743,13 +744,13 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:25:03+00:00"
+        "time": "2026-10-22T04:18:20+00:00"
        }
       ],
-      "name": "web-57f5c4fd7c.18e059e7d4d6483a",
+      "name": "web-57f5c4fd7c.18e0bf09de6898e7",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9838",
-      "uid": "a71f4f5c-67c0-4f8e-8657-924622443e9f"
+      "resourceVersion": "83561",
+      "uid": "4ffbcd11-1583-4382-820d-0a2094bd18fd"
      },
      "reason": "SuccessfulCreate",
      "reportingComponent": "replicaset-controller",
@@ -761,19 +762,19 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-20T21:25:03+00:00",
+     "firstTimestamp": "2026-10-22T04:18:20+00:00",
      "involvedObject": {
       "apiVersion": "apps/v1",
       "kind": "Deployment",
       "name": "web",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9833",
-      "uid": "16f86819-bce9-4a19-bb38-4b57322f472d"
+      "resourceVersion": "83555",
+      "uid": "cb2810ec-214e-4bac-9dbc-5c52a53c1724"
      },
-     "lastTimestamp": "2026-10-20T21:25:03+00:00",
+     "lastTimestamp": "2026-10-22T04:18:20+00:00",
      "message": "Scaled up replica set web-57f5c4fd7c from 0 to 1",
      "metadata": {
-      "creationTimestamp": "2026-10-20T21:25:03+00:00",
+      "creationTimestamp": "2026-10-22T04:18:20+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -793,13 +794,13 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-20T21:25:03+00:00"
+        "time": "2026-10-22T04:18:20+00:00"
        }
       ],
-      "name": "web.18e059e7d4785f60",
+      "name": "web.18e0bf09de10cdce",
       "namespace": "triage-02-imagepull",
-      "resourceVersion": "9835",
-      "uid": "68d678aa-64ac-414d-ace6-f00f35a7bc9b"
+      "resourceVersion": "83557",
+      "uid": "72ba795d-9906-4679-8a43-7aae70b4bb0b"
      },
      "reason": "ScalingReplicaSet",
      "reportingComponent": "deployment-controller",
@@ -817,13 +818,13 @@
    "args": {
     "kind": "pod",
     "namespace": "triage-02-imagepull",
-    "name": "web-57f5c4fd7c-vkcsj"
+    "name": "web-57f5c4fd7c-72n8v"
    },
    "result": {
     "apiVersion": "v1",
     "kind": "Pod",
     "metadata": {
-     "creationTimestamp": "2026-10-20T21:25:03+00:00",
+     "creationTimestamp": "2026-10-22T04:18:20+00:00",
      "generateName": "web-57f5c4fd7c-",
      "generation": 1,
      "labels": {
@@ -844,7 +845,7 @@
          },
          "f:ownerReferences": {
           ".": {},
-          "k:{\"uid\":\"ac262312-c27c-4713-88d6-18c0afb8313a\"}": {}
+          "k:{\"uid\":\"f4f25667-3040-4d7f-b47e-7a6c1a4a9e99\"}": {}
          }
         },
         "f:spec": {
@@ -889,7 +890,7 @@
        },
        "manager": "kube-controller-manager",
        "operation": "Update",
-       "time": "2026-10-20T21:25:03+00:00"
+       "time": "2026-10-22T04:18:20+00:00"
       },
       {
        "apiVersion": "v1",
@@ -949,7 +950,7 @@
          "f:podIP": {},
          "f:podIPs": {
           ".": {},
-          "k:{\"ip\":\"10.244.0.13\"}": {
+          "k:{\"ip\":\"10.244.0.29\"}": {
            ".": {},
            "f:ip": {}
           }
@@ -973,10 +974,10 @@
        "manager": "kubelet",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:25:18+00:00"
+       "time": "2026-10-22T04:18:34+00:00"
       }
      ],
-     "name": "web-57f5c4fd7c-vkcsj",
+     "name": "web-57f5c4fd7c-72n8v",
      "namespace": "triage-02-imagepull",
      "ownerReferences": [
       {
@@ -985,11 +986,11 @@
        "controller": true,
        "kind": "ReplicaSet",
        "name": "web-57f5c4fd7c",
-       "uid": "ac262312-c27c-4713-88d6-18c0afb8313a"
+       "uid": "f4f25667-3040-4d7f-b47e-7a6c1a4a9e99"
       }
      ],
-     "resourceVersion": "9873",
-     "uid": "1e49078b-b144-4d87-80ba-91ae519ea012"
+     "resourceVersion": "83597",
+     "uid": "7250542f-fad4-4f10-9259-b7a54574b804"
     },
     "spec": {
      "containers": [
@@ -1018,7 +1019,7 @@
        "volumeMounts": [
         {
          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-         "name": "kube-api-access-7wrzl",
+         "name": "kube-api-access-2th2w",
          "readOnly": true
         }
        ]
@@ -1051,7 +1052,7 @@
      ],
      "volumes": [
       {
-       "name": "kube-api-access-7wrzl",
+       "name": "kube-api-access-2th2w",
        "projected": {
         "defaultMode": 420,
         "sources": [
@@ -1097,19 +1098,19 @@
      },
      "conditions": [
       {
-       "lastTransitionTime": "2026-10-20T21:25:04+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:21+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "PodReadyToStartContainers"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:25:03+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:20+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "Initialized"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:25:03+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:20+00:00",
        "message": "containers with unready status: [web]",
        "observedGeneration": 1,
        "reason": "ContainersNotReady",
@@ -1117,7 +1118,7 @@
        "type": "Ready"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:25:03+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:20+00:00",
        "message": "containers with unready status: [web]",
        "observedGeneration": 1,
        "reason": "ContainersNotReady",
@@ -1125,7 +1126,7 @@
        "type": "ContainersReady"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:25:03+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:20+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "PodScheduled"
@@ -1149,7 +1150,7 @@
        "volumeMounts": [
         {
          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-         "name": "kube-api-access-7wrzl",
+         "name": "kube-api-access-2th2w",
          "readOnly": true,
          "recursiveReadOnly": "Disabled"
         }
@@ -1164,10 +1165,10 @@
      ],
      "observedGeneration": 1,
      "phase": "Pending",
-     "podIP": "10.244.0.13",
+     "podIP": "10.244.0.29",
      "podIPs": [
       {
-       "ip": "10.244.0.13"
+       "ip": "10.244.0.29"
       }
      ],
      "qosClass": "Burstable",
@@ -1181,7 +1182,7 @@
        "memory": "16Mi"
       }
      },
-     "startTime": "2026-10-20T21:25:03+00:00"
+     "startTime": "2026-10-22T04:18:20+00:00"
     }
    },
    "error": null
@@ -1202,7 +1203,7 @@
       "deployment.kubernetes.io/max-replicas": "2",
       "deployment.kubernetes.io/revision": "1"
      },
-     "creationTimestamp": "2026-10-20T21:25:03+00:00",
+     "creationTimestamp": "2026-10-22T04:18:20+00:00",
      "generation": 1,
      "labels": {
       "app": "web",
@@ -1227,7 +1228,7 @@
          },
          "f:ownerReferences": {
           ".": {},
-          "k:{\"uid\":\"16f86819-bce9-4a19-bb38-4b57322f472d\"}": {}
+          "k:{\"uid\":\"cb2810ec-214e-4bac-9dbc-5c52a53c1724\"}": {}
          }
         },
         "f:spec": {
@@ -1284,7 +1285,7 @@
        },
        "manager": "kube-controller-manager",
        "operation": "Update",
-       "time": "2026-10-20T21:25:03+00:00"
+       "time": "2026-10-22T04:18:20+00:00"
       },
       {
        "apiVersion": "apps/v1",
@@ -1300,7 +1301,7 @@
        "manager": "kube-controller-manager",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:25:03+00:00"
+       "time": "2026-10-22T04:18:20+00:00"
       }
      ],
      "name": "web-57f5c4fd7c",
@@ -1312,11 +1313,11 @@
        "controller": true,
        "kind": "Deployment",
        "name": "web",
-       "uid": "16f86819-bce9-4a19-bb38-4b57322f472d"
+       "uid": "cb2810ec-214e-4bac-9dbc-5c52a53c1724"
       }
      ],
-     "resourceVersion": "9843",
-     "uid": "ac262312-c27c-4713-88d6-18c0afb8313a"
+     "resourceVersion": "83567",
+     "uid": "f4f25667-3040-4d7f-b47e-7a6c1a4a9e99"
     },
     "spec": {
      "replicas": 1,
@@ -1380,7 +1381,7 @@
    "method": "read_log",
    "args": {
     "namespace": "triage-02-imagepull",
-    "pod": "web-57f5c4fd7c-vkcsj",
+    "pod": "web-57f5c4fd7c-72n8v",
     "container": "web",
     "previous": false,
     "tail": 200
@@ -1388,14 +1389,14 @@
    "result": null,
    "error": {
     "status": 400,
-    "message": "container \"web\" in pod \"web-57f5c4fd7c-vkcsj\" is waiting to start: trying and failing to pull image"
+    "message": "container \"web\" in pod \"web-57f5c4fd7c-72n8v\" is waiting to start: trying and failing to pull image"
    }
   },
   {
    "method": "read_log",
    "args": {
     "namespace": "triage-02-imagepull",
-    "pod": "web-57f5c4fd7c-vkcsj",
+    "pod": "web-57f5c4fd7c-72n8v",
     "container": "web",
     "previous": true,
     "tail": 200
@@ -1403,7 +1404,7 @@
    "result": null,
    "error": {
     "status": 400,
-    "message": "previous terminated container \"web\" in pod \"web-57f5c4fd7c-vkcsj\" not found"
+    "message": "previous terminated container \"web\" in pod \"web-57f5c4fd7c-72n8v\" not found"
    }
   },
   {
@@ -1421,7 +1422,7 @@
       "deployment.kubernetes.io/revision": "1",
       "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"name\":\"web\",\"namespace\":\"triage-02-imagepull\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"web\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"web\"}},\"spec\":{\"containers\":[{\"image\":\"nginx:1.0.0-does-not-exist\",\"name\":\"web\",\"ports\":[{\"containerPort\":80}],\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}}}]}}}}\n"
      },
-     "creationTimestamp": "2026-10-20T21:25:03+00:00",
+     "creationTimestamp": "2026-10-22T04:18:20+00:00",
      "generation": 1,
      "managedFields": [
       {
@@ -1465,7 +1466,7 @@
        "manager": "kube-controller-manager",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-20T21:25:03+00:00"
+       "time": "2026-10-22T04:18:20+00:00"
       },
       {
        "apiVersion": "apps/v1",
@@ -1540,13 +1541,13 @@
        },
        "manager": "kubectl-client-side-apply",
        "operation": "Update",
-       "time": "2026-10-20T21:25:03+00:00"
+       "time": "2026-10-22T04:18:20+00:00"
       }
      ],
      "name": "web",
      "namespace": "triage-02-imagepull",
-     "resourceVersion": "9844",
-     "uid": "16f86819-bce9-4a19-bb38-4b57322f472d"
+     "resourceVersion": "83568",
+     "uid": "cb2810ec-214e-4bac-9dbc-5c52a53c1724"
     },
     "spec": {
      "progressDeadlineSeconds": 600,
@@ -1607,16 +1608,16 @@
     "status": {
      "conditions": [
       {
-       "lastTransitionTime": "2026-10-20T21:25:03+00:00",
-       "lastUpdateTime": "2026-10-20T21:25:03+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:20+00:00",
+       "lastUpdateTime": "2026-10-22T04:18:20+00:00",
        "message": "Deployment does not have minimum availability.",
        "reason": "MinimumReplicasUnavailable",
        "status": "False",
        "type": "Available"
       },
       {
-       "lastTransitionTime": "2026-10-20T21:25:03+00:00",
-       "lastUpdateTime": "2026-10-20T21:25:03+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:20+00:00",
+       "lastUpdateTime": "2026-10-22T04:18:20+00:00",
        "message": "ReplicaSet \"web-57f5c4fd7c\" is progressing.",
        "reason": "ReplicaSetUpdated",
        "status": "True",
@@ -1628,6 +1629,73 @@
      "terminatingReplicas": 0,
      "unavailableReplicas": 1,
      "updatedReplicas": 1
+    }
+   },
+   "error": null
+  },
+  {
+   "method": "read",
+   "args": {
+    "kind": "serviceaccount",
+    "namespace": "triage-02-imagepull",
+    "name": "default"
+   },
+   "result": {
+    "apiVersion": "v1",
+    "kind": "ServiceAccount",
+    "metadata": {
+     "creationTimestamp": "2026-10-22T04:18:20+00:00",
+     "name": "default",
+     "namespace": "triage-02-imagepull",
+     "resourceVersion": "83553",
+     "uid": "ede03cd9-a71c-4fc3-bad1-7f22c8342daf"
+    }
+   },
+   "error": null
+  },
+  {
+   "method": "read",
+   "args": {
+    "kind": "configmap",
+    "namespace": "triage-02-imagepull",
+    "name": "kube-root-ca.crt"
+   },
+   "result": {
+    "apiVersion": "v1",
+    "data": {
+     "ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDBTCCAe2gAwIBAgIIc/Eloyr7R2UwDQYJKoZIhvcNAQELBQAwFTETMBEGA1UE\nAxMKa3ViZXJuZXRlczAeFw0yNjEwMjAxOTM1MjNaFw0zNjEwMTcxOTQwMjNaMBUx\nEzARBgNVBAMTCmt1YmVybmV0ZXMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQCcuII5I/WZquI4PZaFXwNDaa3vovUz/j4l86mipaLm3f2HTshS2NueN3YS\n7vSm1Zn5EI/dEJQTcsPwkt/gLqcgCN0ZzXkfYhakmTsoIF4pYcSEpDXsl4BQdYd8\njjw/tYF24czyoNqaCihEC4T9pFW0FMwgJHFUQLiZFHkjUBj14svJ8fGhFyN/pljh\nkQTt36RJ8cVqPRvCUJlcve5X6acOPxwGVfBxCHuornbdg0Jbq7bRDU3B/GRR4qlt\nT/VCLISJgmdVAxL9ktKobYEtxovtRAt9ksOX11sHV3pa55lTK0Y5wMhO+asIdP6R\nlqlqy1iZNQr7PN1foXj/g/tguUgDAgMBAAGjWTBXMA4GA1UdDwEB/wQEAwICpDAP\nBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTzsktA+uZLZSSbmdy6bzzVkcZujTAV\nBgNVHREEDjAMggprdWJlcm5ldGVzMA0GCSqGSIb3DQEBCwUAA4IBAQA6z+/lGz/1\nSCdWnRY9AIB7CJe1sGE8zktqjJE3iBEwMK3RRexJE0DO6Dx+MqrmYFqK2b0Ktb2d\nScSYMxC8tO5+g9YNWusd5Xf/qPdELvf/rW9kur5WrR83JrBUnlfLABJXiObKDsrX\nqLOvrid6XbhxdeK09HoM3/nWAMiGE/7c493eh4N6Ofxk5wgHICQszF+nVYufxr5b\nXDM6hviyrYucxFXKvlKD/JQtCbQ6q0dxwCc0jygSsN3ajKuoov/ckQ9ssMbAEwlF\nec2EapBfmXvZBYZaJYv0ZTAxhFtt0cowjtY/ti2Qe6PjDCjJ3RjBLTYe6wcJoAkr\nTmjtqTjyu0pj\n-----END CERTIFICATE-----\n"
+    },
+    "kind": "ConfigMap",
+    "metadata": {
+     "annotations": {
+      "kubernetes.io/description": "Contains a CA bundle that can be used to verify the kube-apiserver when using internal endpoints such as the internal service IP or kubernetes.default.svc. No other usage is guaranteed across distributions of Kubernetes clusters."
+     },
+     "creationTimestamp": "2026-10-22T04:18:20+00:00",
+     "managedFields": [
+      {
+       "apiVersion": "v1",
+       "fieldsType": "FieldsV1",
+       "fieldsV1": {
+        "f:data": {
+         ".": {},
+         "f:ca.crt": {}
+        },
+        "f:metadata": {
+         "f:annotations": {
+          ".": {},
+          "f:kubernetes.io/description": {}
+         }
+        }
+       },
+       "manager": "kube-controller-manager",
+       "operation": "Update",
+       "time": "2026-10-22T04:18:20+00:00"
+      }
+     ],
+     "name": "kube-root-ca.crt",
+     "namespace": "triage-02-imagepull",
+     "resourceVersion": "83554",
+     "uid": "91933fbd-48ce-43b4-8b26-823cad3a8c61"
     }
    },
    "error": null

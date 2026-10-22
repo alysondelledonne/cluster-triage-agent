@@ -1,9 +1,10 @@
 {
  "scenario": "03-oomkilled",
  "namespace": "triage-03-oomkilled",
- "recorded_at": "2026-10-21T22:59:20+00:00",
+ "recorded_at": "2026-10-22T04:19:07+00:00",
  "server_version": "v1.37.0",
  "agent_user": "system:serviceaccount:triage-system:triage-agent",
+ "inventory_complete": true,
  "calls": [
   {
    "method": "whoami",
@@ -19,7 +20,7 @@
    "result": [
     {
      "metadata": {
-      "creationTimestamp": "2026-10-21T22:59:02+00:00",
+      "creationTimestamp": "2026-10-22T04:18:49+00:00",
       "generateName": "worker-598df88d46-",
       "generation": 1,
       "labels": {
@@ -40,7 +41,7 @@
           },
           "f:ownerReferences": {
            ".": {},
-           "k:{\"uid\":\"c985b02e-6723-4779-9583-a3f330db0433\"}": {}
+           "k:{\"uid\":\"47be608b-ea05-4de7-ae08-9504e05bbe88\"}": {}
           }
          },
          "f:spec": {
@@ -79,7 +80,7 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-21T22:59:02+00:00"
+        "time": "2026-10-22T04:18:49+00:00"
        },
        {
         "apiVersion": "v1",
@@ -140,7 +141,7 @@
           "f:podIP": {},
           "f:podIPs": {
            ".": {},
-           "k:{\"ip\":\"10.244.0.22\"}": {
+           "k:{\"ip\":\"10.244.0.30\"}": {
             ".": {},
             "f:ip": {}
            }
@@ -163,10 +164,10 @@
         "manager": "kubelet",
         "operation": "Update",
         "subresource": "status",
-        "time": "2026-10-21T22:59:16+00:00"
+        "time": "2026-10-22T04:19:01+00:00"
        }
       ],
-      "name": "worker-598df88d46-pwzf9",
+      "name": "worker-598df88d46-t7h7b",
       "namespace": "triage-03-oomkilled",
       "ownerReferences": [
        {
@@ -175,11 +176,11 @@
         "controller": true,
         "kind": "ReplicaSet",
         "name": "worker-598df88d46",
-        "uid": "c985b02e-6723-4779-9583-a3f330db0433"
+        "uid": "47be608b-ea05-4de7-ae08-9504e05bbe88"
        }
       ],
-      "resourceVersion": "66747",
-      "uid": "0f224e2c-2198-4a08-a82d-4ea536efb94b"
+      "resourceVersion": "83707",
+      "uid": "6de58dcb-7add-47f1-ab50-2b81f1b7c7d6"
      },
      "spec": {
       "containers": [
@@ -209,7 +210,7 @@
         "volumeMounts": [
          {
           "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-          "name": "kube-api-access-shsxt",
+          "name": "kube-api-access-bjrqv",
           "readOnly": true
          }
         ]
@@ -242,7 +243,7 @@
       ],
       "volumes": [
        {
-        "name": "kube-api-access-shsxt",
+        "name": "kube-api-access-bjrqv",
         "projected": {
          "defaultMode": 420,
          "sources": [
@@ -288,19 +289,19 @@
       },
       "conditions": [
        {
-        "lastTransitionTime": "2026-10-21T22:59:03+00:00",
+        "lastTransitionTime": "2026-10-22T04:18:49+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "PodReadyToStartContainers"
        },
        {
-        "lastTransitionTime": "2026-10-21T22:59:02+00:00",
+        "lastTransitionTime": "2026-10-22T04:18:49+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "Initialized"
        },
        {
-        "lastTransitionTime": "2026-10-21T22:59:16+00:00",
+        "lastTransitionTime": "2026-10-22T04:19:01+00:00",
         "message": "containers with unready status: [worker]",
         "observedGeneration": 1,
         "reason": "ContainersNotReady",
@@ -308,7 +309,7 @@
         "type": "Ready"
        },
        {
-        "lastTransitionTime": "2026-10-21T22:59:16+00:00",
+        "lastTransitionTime": "2026-10-22T04:19:01+00:00",
         "message": "containers with unready status: [worker]",
         "observedGeneration": 1,
         "reason": "ContainersNotReady",
@@ -316,7 +317,7 @@
         "type": "ContainersReady"
        },
        {
-        "lastTransitionTime": "2026-10-21T22:59:02+00:00",
+        "lastTransitionTime": "2026-10-22T04:18:49+00:00",
         "observedGeneration": 1,
         "status": "True",
         "type": "PodScheduled"
@@ -328,16 +329,16 @@
          "cpu": "10m",
          "memory": "16Mi"
         },
-        "containerID": "containerd://29f63c1811ed3e89458f11fcc5cf617f006c492311d614311a760b8916cab9a7",
+        "containerID": "containerd://965c9bd2738b2f2afc41106534952d03e4abce4e41df6d7fe46666f94a7ff7be",
         "image": "docker.io/library/busybox:1.36.1",
         "imageID": "docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
         "lastState": {
          "terminated": {
-          "containerID": "containerd://656225c6d787d3c9374f3e007e5f9b8fabf179c085d0084e6e15b3c5613fcfd6",
+          "containerID": "containerd://842dca9561eb6b9b8206d7b5ceb64e7ca3a285cbcdb37dc3e22f60010712596e",
           "exitCode": 137,
-          "finishedAt": "2026-10-21T22:59:03+00:00",
+          "finishedAt": "2026-10-22T04:18:50+00:00",
           "reason": "OOMKilled",
-          "startedAt": "2026-10-21T22:59:03+00:00"
+          "startedAt": "2026-10-22T04:18:50+00:00"
          }
         },
         "name": "worker",
@@ -356,11 +357,11 @@
         "started": false,
         "state": {
          "terminated": {
-          "containerID": "containerd://29f63c1811ed3e89458f11fcc5cf617f006c492311d614311a760b8916cab9a7",
+          "containerID": "containerd://965c9bd2738b2f2afc41106534952d03e4abce4e41df6d7fe46666f94a7ff7be",
           "exitCode": 137,
-          "finishedAt": "2026-10-21T22:59:16+00:00",
+          "finishedAt": "2026-10-22T04:19:01+00:00",
           "reason": "OOMKilled",
-          "startedAt": "2026-10-21T22:59:16+00:00"
+          "startedAt": "2026-10-22T04:19:01+00:00"
          }
         },
         "user": {
@@ -376,7 +377,7 @@
         "volumeMounts": [
          {
           "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-          "name": "kube-api-access-shsxt",
+          "name": "kube-api-access-bjrqv",
           "readOnly": true,
           "recursiveReadOnly": "Disabled"
          }
@@ -391,10 +392,10 @@
       ],
       "observedGeneration": 1,
       "phase": "Running",
-      "podIP": "10.244.0.22",
+      "podIP": "10.244.0.30",
       "podIPs": [
        {
-        "ip": "10.244.0.22"
+        "ip": "10.244.0.30"
        }
       ],
       "qosClass": "Burstable",
@@ -407,7 +408,7 @@
         "memory": "16Mi"
        }
       },
-      "startTime": "2026-10-21T22:59:02+00:00"
+      "startTime": "2026-10-22T04:18:49+00:00"
      }
     }
    ],
@@ -421,19 +422,19 @@
    "result": [
     {
      "count": 1,
-     "firstTimestamp": "2026-10-21T22:59:02+00:00",
+     "firstTimestamp": "2026-10-22T04:18:49+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "kind": "Pod",
-      "name": "worker-598df88d46-pwzf9",
+      "name": "worker-598df88d46-t7h7b",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66690",
-      "uid": "0f224e2c-2198-4a08-a82d-4ea536efb94b"
+      "resourceVersion": "83653",
+      "uid": "6de58dcb-7add-47f1-ab50-2b81f1b7c7d6"
      },
-     "lastTimestamp": "2026-10-21T22:59:02+00:00",
-     "message": "Successfully assigned triage-03-oomkilled/worker-598df88d46-pwzf9 to triage-control-plane",
+     "lastTimestamp": "2026-10-22T04:18:49+00:00",
+     "message": "Successfully assigned triage-03-oomkilled/worker-598df88d46-t7h7b to triage-control-plane",
      "metadata": {
-      "creationTimestamp": "2026-10-21T22:59:02+00:00",
+      "creationTimestamp": "2026-10-22T04:18:49+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -453,13 +454,13 @@
         },
         "manager": "kube-scheduler",
         "operation": "Update",
-        "time": "2026-10-21T22:59:02+00:00"
+        "time": "2026-10-22T04:18:49+00:00"
        }
       ],
-      "name": "worker-598df88d46-pwzf9.18e0ad9d41ff699c",
+      "name": "worker-598df88d46-t7h7b.18e0bf1088a13d91",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66695",
-      "uid": "7d90b81c-5c59-4f98-bbc0-f02c4eb1738b"
+      "resourceVersion": "83658",
+      "uid": "8d7d3967-fa8e-4c83-ae68-50180656f417"
      },
      "reason": "Scheduled",
      "reportingComponent": "default-scheduler",
@@ -471,20 +472,20 @@
     },
     {
      "count": 3,
-     "firstTimestamp": "2026-10-21T22:59:03+00:00",
+     "firstTimestamp": "2026-10-22T04:18:49+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{worker}",
       "kind": "Pod",
-      "name": "worker-598df88d46-pwzf9",
+      "name": "worker-598df88d46-t7h7b",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66694",
-      "uid": "0f224e2c-2198-4a08-a82d-4ea536efb94b"
+      "resourceVersion": "83655",
+      "uid": "6de58dcb-7add-47f1-ab50-2b81f1b7c7d6"
      },
-     "lastTimestamp": "2026-10-21T22:59:16+00:00",
+     "lastTimestamp": "2026-10-22T04:19:01+00:00",
      "message": "Container image \"busybox:1.36.1\" already present on machine and can be accessed by the pod",
      "metadata": {
-      "creationTimestamp": "2026-10-21T22:59:03+00:00",
+      "creationTimestamp": "2026-10-22T04:18:49+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -506,13 +507,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-21T22:59:16+00:00"
+        "time": "2026-10-22T04:19:01+00:00"
        }
       ],
-      "name": "worker-598df88d46-pwzf9.18e0ad9d5a1dcc07",
+      "name": "worker-598df88d46-t7h7b.18e0bf10a003f6ce",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66739",
-      "uid": "1f896a64-63ba-4e6d-9dac-d24109602e18"
+      "resourceVersion": "83699",
+      "uid": "7fcbfa1d-a66d-4cc4-8d15-b789150c9bc7"
      },
      "reason": "Pulled",
      "reportingComponent": "kubelet",
@@ -525,20 +526,20 @@
     },
     {
      "count": 3,
-     "firstTimestamp": "2026-10-21T22:59:03+00:00",
+     "firstTimestamp": "2026-10-22T04:18:49+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{worker}",
       "kind": "Pod",
-      "name": "worker-598df88d46-pwzf9",
+      "name": "worker-598df88d46-t7h7b",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66694",
-      "uid": "0f224e2c-2198-4a08-a82d-4ea536efb94b"
+      "resourceVersion": "83655",
+      "uid": "6de58dcb-7add-47f1-ab50-2b81f1b7c7d6"
      },
-     "lastTimestamp": "2026-10-21T22:59:16+00:00",
+     "lastTimestamp": "2026-10-22T04:19:01+00:00",
      "message": "Container created",
      "metadata": {
-      "creationTimestamp": "2026-10-21T22:59:03+00:00",
+      "creationTimestamp": "2026-10-22T04:18:49+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -560,13 +561,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-21T22:59:16+00:00"
+        "time": "2026-10-22T04:19:01+00:00"
        }
       ],
-      "name": "worker-598df88d46-pwzf9.18e0ad9d5aa632f9",
+      "name": "worker-598df88d46-t7h7b.18e0bf10a0d1dba0",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66741",
-      "uid": "cf80f110-c09b-4048-a9a4-5e46352801c3"
+      "resourceVersion": "83701",
+      "uid": "74ce33a4-071d-4c01-8cd6-a31e7dc35320"
      },
      "reason": "Created",
      "reportingComponent": "kubelet",
@@ -579,20 +580,20 @@
     },
     {
      "count": 3,
-     "firstTimestamp": "2026-10-21T22:59:03+00:00",
+     "firstTimestamp": "2026-10-22T04:18:49+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{worker}",
       "kind": "Pod",
-      "name": "worker-598df88d46-pwzf9",
+      "name": "worker-598df88d46-t7h7b",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66694",
-      "uid": "0f224e2c-2198-4a08-a82d-4ea536efb94b"
+      "resourceVersion": "83655",
+      "uid": "6de58dcb-7add-47f1-ab50-2b81f1b7c7d6"
      },
-     "lastTimestamp": "2026-10-21T22:59:16+00:00",
+     "lastTimestamp": "2026-10-22T04:19:01+00:00",
      "message": "Container started",
      "metadata": {
-      "creationTimestamp": "2026-10-21T22:59:03+00:00",
+      "creationTimestamp": "2026-10-22T04:18:49+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -614,13 +615,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-21T22:59:16+00:00"
+        "time": "2026-10-22T04:19:01+00:00"
        }
       ],
-      "name": "worker-598df88d46-pwzf9.18e0ad9d5cbfd97b",
+      "name": "worker-598df88d46-t7h7b.18e0bf10a3ca0584",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66742",
-      "uid": "8ba44ccd-a03f-4ef6-ac27-0e2284387939"
+      "resourceVersion": "83702",
+      "uid": "4d2c6fcf-4997-41dc-8aae-64b31e580d2b"
      },
      "reason": "Started",
      "reportingComponent": "kubelet",
@@ -633,20 +634,20 @@
     },
     {
      "count": 2,
-     "firstTimestamp": "2026-10-21T22:59:04+00:00",
+     "firstTimestamp": "2026-10-22T04:18:51+00:00",
      "involvedObject": {
       "apiVersion": "v1",
       "fieldPath": "spec.containers{worker}",
       "kind": "Pod",
-      "name": "worker-598df88d46-pwzf9",
+      "name": "worker-598df88d46-t7h7b",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66694",
-      "uid": "0f224e2c-2198-4a08-a82d-4ea536efb94b"
+      "resourceVersion": "83655",
+      "uid": "6de58dcb-7add-47f1-ab50-2b81f1b7c7d6"
      },
-     "lastTimestamp": "2026-10-21T22:59:16+00:00",
-     "message": "Back-off restarting failed container worker in pod worker-598df88d46-pwzf9_triage-03-oomkilled(0f224e2c-2198-4a08-a82d-4ea536efb94b)",
+     "lastTimestamp": "2026-10-22T04:19:01+00:00",
+     "message": "Back-off restarting failed container worker in pod worker-598df88d46-t7h7b_triage-03-oomkilled(6de58dcb-7add-47f1-ab50-2b81f1b7c7d6)",
      "metadata": {
-      "creationTimestamp": "2026-10-21T22:59:04+00:00",
+      "creationTimestamp": "2026-10-22T04:18:51+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -668,13 +669,13 @@
         },
         "manager": "kubelet",
         "operation": "Update",
-        "time": "2026-10-21T22:59:16+00:00"
+        "time": "2026-10-22T04:19:01+00:00"
        }
       ],
-      "name": "worker-598df88d46-pwzf9.18e0ad9db52334d6",
+      "name": "worker-598df88d46-t7h7b.18e0bf1115e00174",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66746",
-      "uid": "0b71eb74-c602-486a-a8cd-e460e2dd5186"
+      "resourceVersion": "83706",
+      "uid": "cc1c15bd-477c-4ff4-b29a-5032e2ed1e56"
      },
      "reason": "BackOff",
      "reportingComponent": "kubelet",
@@ -687,19 +688,19 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-21T22:59:02+00:00",
+     "firstTimestamp": "2026-10-22T04:18:49+00:00",
      "involvedObject": {
       "apiVersion": "apps/v1",
       "kind": "ReplicaSet",
       "name": "worker-598df88d46",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66687",
-      "uid": "c985b02e-6723-4779-9583-a3f330db0433"
+      "resourceVersion": "83650",
+      "uid": "47be608b-ea05-4de7-ae08-9504e05bbe88"
      },
-     "lastTimestamp": "2026-10-21T22:59:02+00:00",
-     "message": "Created pod: worker-598df88d46-pwzf9",
+     "lastTimestamp": "2026-10-22T04:18:49+00:00",
+     "message": "Created pod: worker-598df88d46-t7h7b",
      "metadata": {
-      "creationTimestamp": "2026-10-21T22:59:02+00:00",
+      "creationTimestamp": "2026-10-22T04:18:49+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -719,13 +720,13 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-21T22:59:02+00:00"
+        "time": "2026-10-22T04:18:49+00:00"
        }
       ],
-      "name": "worker-598df88d46.18e0ad9d41bf8a89",
+      "name": "worker-598df88d46.18e0bf108866caad",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66691",
-      "uid": "3d06fe83-1ae2-4d9e-b531-ce7a39f0fa49"
+      "resourceVersion": "83654",
+      "uid": "69248365-4859-45e8-8d4a-f0285b72a3be"
      },
      "reason": "SuccessfulCreate",
      "reportingComponent": "replicaset-controller",
@@ -737,19 +738,19 @@
     },
     {
      "count": 1,
-     "firstTimestamp": "2026-10-21T22:59:02+00:00",
+     "firstTimestamp": "2026-10-22T04:18:49+00:00",
      "involvedObject": {
       "apiVersion": "apps/v1",
       "kind": "Deployment",
       "name": "worker",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66686",
-      "uid": "a1b7ada8-04e8-4c90-ae42-a9c6bbfda989"
+      "resourceVersion": "83649",
+      "uid": "e8e46126-6160-498b-9c86-9667a556b299"
      },
-     "lastTimestamp": "2026-10-21T22:59:02+00:00",
+     "lastTimestamp": "2026-10-22T04:18:49+00:00",
      "message": "Scaled up replica set worker-598df88d46 from 0 to 1",
      "metadata": {
-      "creationTimestamp": "2026-10-21T22:59:02+00:00",
+      "creationTimestamp": "2026-10-22T04:18:49+00:00",
       "managedFields": [
        {
         "apiVersion": "v1",
@@ -769,13 +770,13 @@
         },
         "manager": "kube-controller-manager",
         "operation": "Update",
-        "time": "2026-10-21T22:59:02+00:00"
+        "time": "2026-10-22T04:18:49+00:00"
        }
       ],
-      "name": "worker.18e0ad9d4179aaae",
+      "name": "worker.18e0bf108812e794",
       "namespace": "triage-03-oomkilled",
-      "resourceVersion": "66688",
-      "uid": "dc1d64c3-5281-4e99-a4de-579d870c28cc"
+      "resourceVersion": "83651",
+      "uid": "2be0b593-eb73-49fd-b5bc-4321fc5efc44"
      },
      "reason": "ScalingReplicaSet",
      "reportingComponent": "deployment-controller",
@@ -793,13 +794,13 @@
    "args": {
     "kind": "pod",
     "namespace": "triage-03-oomkilled",
-    "name": "worker-598df88d46-pwzf9"
+    "name": "worker-598df88d46-t7h7b"
    },
    "result": {
     "apiVersion": "v1",
     "kind": "Pod",
     "metadata": {
-     "creationTimestamp": "2026-10-21T22:59:02+00:00",
+     "creationTimestamp": "2026-10-22T04:18:49+00:00",
      "generateName": "worker-598df88d46-",
      "generation": 1,
      "labels": {
@@ -820,7 +821,7 @@
          },
          "f:ownerReferences": {
           ".": {},
-          "k:{\"uid\":\"c985b02e-6723-4779-9583-a3f330db0433\"}": {}
+          "k:{\"uid\":\"47be608b-ea05-4de7-ae08-9504e05bbe88\"}": {}
          }
         },
         "f:spec": {
@@ -859,7 +860,7 @@
        },
        "manager": "kube-controller-manager",
        "operation": "Update",
-       "time": "2026-10-21T22:59:02+00:00"
+       "time": "2026-10-22T04:18:49+00:00"
       },
       {
        "apiVersion": "v1",
@@ -920,7 +921,7 @@
          "f:podIP": {},
          "f:podIPs": {
           ".": {},
-          "k:{\"ip\":\"10.244.0.22\"}": {
+          "k:{\"ip\":\"10.244.0.30\"}": {
            ".": {},
            "f:ip": {}
           }
@@ -943,10 +944,10 @@
        "manager": "kubelet",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-21T22:59:16+00:00"
+       "time": "2026-10-22T04:19:01+00:00"
       }
      ],
-     "name": "worker-598df88d46-pwzf9",
+     "name": "worker-598df88d46-t7h7b",
      "namespace": "triage-03-oomkilled",
      "ownerReferences": [
       {
@@ -955,11 +956,11 @@
        "controller": true,
        "kind": "ReplicaSet",
        "name": "worker-598df88d46",
-       "uid": "c985b02e-6723-4779-9583-a3f330db0433"
+       "uid": "47be608b-ea05-4de7-ae08-9504e05bbe88"
       }
      ],
-     "resourceVersion": "66747",
-     "uid": "0f224e2c-2198-4a08-a82d-4ea536efb94b"
+     "resourceVersion": "83707",
+     "uid": "6de58dcb-7add-47f1-ab50-2b81f1b7c7d6"
     },
     "spec": {
      "containers": [
@@ -989,7 +990,7 @@
        "volumeMounts": [
         {
          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-         "name": "kube-api-access-shsxt",
+         "name": "kube-api-access-bjrqv",
          "readOnly": true
         }
        ]
@@ -1022,7 +1023,7 @@
      ],
      "volumes": [
       {
-       "name": "kube-api-access-shsxt",
+       "name": "kube-api-access-bjrqv",
        "projected": {
         "defaultMode": 420,
         "sources": [
@@ -1068,19 +1069,19 @@
      },
      "conditions": [
       {
-       "lastTransitionTime": "2026-10-21T22:59:03+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:49+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "PodReadyToStartContainers"
       },
       {
-       "lastTransitionTime": "2026-10-21T22:59:02+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:49+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "Initialized"
       },
       {
-       "lastTransitionTime": "2026-10-21T22:59:16+00:00",
+       "lastTransitionTime": "2026-10-22T04:19:01+00:00",
        "message": "containers with unready status: [worker]",
        "observedGeneration": 1,
        "reason": "ContainersNotReady",
@@ -1088,7 +1089,7 @@
        "type": "Ready"
       },
       {
-       "lastTransitionTime": "2026-10-21T22:59:16+00:00",
+       "lastTransitionTime": "2026-10-22T04:19:01+00:00",
        "message": "containers with unready status: [worker]",
        "observedGeneration": 1,
        "reason": "ContainersNotReady",
@@ -1096,7 +1097,7 @@
        "type": "ContainersReady"
       },
       {
-       "lastTransitionTime": "2026-10-21T22:59:02+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:49+00:00",
        "observedGeneration": 1,
        "status": "True",
        "type": "PodScheduled"
@@ -1108,16 +1109,16 @@
         "cpu": "10m",
         "memory": "16Mi"
        },
-       "containerID": "containerd://29f63c1811ed3e89458f11fcc5cf617f006c492311d614311a760b8916cab9a7",
+       "containerID": "containerd://965c9bd2738b2f2afc41106534952d03e4abce4e41df6d7fe46666f94a7ff7be",
        "image": "docker.io/library/busybox:1.36.1",
        "imageID": "docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
        "lastState": {
         "terminated": {
-         "containerID": "containerd://656225c6d787d3c9374f3e007e5f9b8fabf179c085d0084e6e15b3c5613fcfd6",
+         "containerID": "containerd://842dca9561eb6b9b8206d7b5ceb64e7ca3a285cbcdb37dc3e22f60010712596e",
          "exitCode": 137,
-         "finishedAt": "2026-10-21T22:59:03+00:00",
+         "finishedAt": "2026-10-22T04:18:50+00:00",
          "reason": "OOMKilled",
-         "startedAt": "2026-10-21T22:59:03+00:00"
+         "startedAt": "2026-10-22T04:18:50+00:00"
         }
        },
        "name": "worker",
@@ -1136,11 +1137,11 @@
        "started": false,
        "state": {
         "terminated": {
-         "containerID": "containerd://29f63c1811ed3e89458f11fcc5cf617f006c492311d614311a760b8916cab9a7",
+         "containerID": "containerd://965c9bd2738b2f2afc41106534952d03e4abce4e41df6d7fe46666f94a7ff7be",
          "exitCode": 137,
-         "finishedAt": "2026-10-21T22:59:16+00:00",
+         "finishedAt": "2026-10-22T04:19:01+00:00",
          "reason": "OOMKilled",
-         "startedAt": "2026-10-21T22:59:16+00:00"
+         "startedAt": "2026-10-22T04:19:01+00:00"
         }
        },
        "user": {
@@ -1156,7 +1157,7 @@
        "volumeMounts": [
         {
          "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
-         "name": "kube-api-access-shsxt",
+         "name": "kube-api-access-bjrqv",
          "readOnly": true,
          "recursiveReadOnly": "Disabled"
         }
@@ -1171,10 +1172,10 @@
      ],
      "observedGeneration": 1,
      "phase": "Running",
-     "podIP": "10.244.0.22",
+     "podIP": "10.244.0.30",
      "podIPs": [
       {
-       "ip": "10.244.0.22"
+       "ip": "10.244.0.30"
       }
      ],
      "qosClass": "Burstable",
@@ -1187,7 +1188,7 @@
        "memory": "16Mi"
       }
      },
-     "startTime": "2026-10-21T22:59:02+00:00"
+     "startTime": "2026-10-22T04:18:49+00:00"
     }
    },
    "error": null
@@ -1208,7 +1209,7 @@
       "deployment.kubernetes.io/max-replicas": "2",
       "deployment.kubernetes.io/revision": "1"
      },
-     "creationTimestamp": "2026-10-21T22:59:02+00:00",
+     "creationTimestamp": "2026-10-22T04:18:49+00:00",
      "generation": 1,
      "labels": {
       "app": "worker",
@@ -1233,7 +1234,7 @@
          },
          "f:ownerReferences": {
           ".": {},
-          "k:{\"uid\":\"a1b7ada8-04e8-4c90-ae42-a9c6bbfda989\"}": {}
+          "k:{\"uid\":\"e8e46126-6160-498b-9c86-9667a556b299\"}": {}
          }
         },
         "f:spec": {
@@ -1284,7 +1285,7 @@
        },
        "manager": "kube-controller-manager",
        "operation": "Update",
-       "time": "2026-10-21T22:59:02+00:00"
+       "time": "2026-10-22T04:18:49+00:00"
       },
       {
        "apiVersion": "apps/v1",
@@ -1300,7 +1301,7 @@
        "manager": "kube-controller-manager",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-21T22:59:16+00:00"
+       "time": "2026-10-22T04:19:01+00:00"
       }
      ],
      "name": "worker-598df88d46",
@@ -1312,11 +1313,11 @@
        "controller": true,
        "kind": "Deployment",
        "name": "worker",
-       "uid": "a1b7ada8-04e8-4c90-ae42-a9c6bbfda989"
+       "uid": "e8e46126-6160-498b-9c86-9667a556b299"
       }
      ],
-     "resourceVersion": "66748",
-     "uid": "c985b02e-6723-4779-9583-a3f330db0433"
+     "resourceVersion": "83708",
+     "uid": "47be608b-ea05-4de7-ae08-9504e05bbe88"
     },
     "spec": {
      "replicas": 1,
@@ -1381,7 +1382,7 @@
    "method": "read_log",
    "args": {
     "namespace": "triage-03-oomkilled",
-    "pod": "worker-598df88d46-pwzf9",
+    "pod": "worker-598df88d46-t7h7b",
     "container": "worker",
     "previous": false,
     "tail": 200
@@ -1393,12 +1394,12 @@
    "method": "read_log",
    "args": {
     "namespace": "triage-03-oomkilled",
-    "pod": "worker-598df88d46-pwzf9",
+    "pod": "worker-598df88d46-t7h7b",
     "container": "worker",
     "previous": true,
     "tail": 200
    },
-   "result": "unable to retrieve container logs for containerd://656225c6d787d3c9374f3e007e5f9b8fabf179c085d0084e6e15b3c5613fcfd6",
+   "result": "unable to retrieve container logs for containerd://842dca9561eb6b9b8206d7b5ceb64e7ca3a285cbcdb37dc3e22f60010712596e",
    "error": null
   },
   {
@@ -1416,7 +1417,7 @@
       "deployment.kubernetes.io/revision": "1",
       "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"name\":\"worker\",\"namespace\":\"triage-03-oomkilled\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"worker\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"worker\"}},\"spec\":{\"containers\":[{\"args\":[\"echo \\\"loading cache into memory\\\"\\ndd if=/dev/zero bs=41943040 count=1 | sleep 2147483647\\n\"],\"command\":[\"sh\",\"-c\"],\"image\":\"busybox:1.36.1\",\"name\":\"worker\",\"resources\":{\"limits\":{\"cpu\":\"200m\",\"memory\":\"16Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}}}]}}}}\n"
      },
-     "creationTimestamp": "2026-10-21T22:59:02+00:00",
+     "creationTimestamp": "2026-10-22T04:18:49+00:00",
      "generation": 1,
      "managedFields": [
       {
@@ -1486,7 +1487,7 @@
        },
        "manager": "kubectl-client-side-apply",
        "operation": "Update",
-       "time": "2026-10-21T22:59:02+00:00"
+       "time": "2026-10-22T04:18:49+00:00"
       },
       {
        "apiVersion": "apps/v1",
@@ -1529,13 +1530,13 @@
        "manager": "kube-controller-manager",
        "operation": "Update",
        "subresource": "status",
-       "time": "2026-10-21T22:59:16+00:00"
+       "time": "2026-10-22T04:19:01+00:00"
       }
      ],
      "name": "worker",
      "namespace": "triage-03-oomkilled",
-     "resourceVersion": "66749",
-     "uid": "a1b7ada8-04e8-4c90-ae42-a9c6bbfda989"
+     "resourceVersion": "83709",
+     "uid": "e8e46126-6160-498b-9c86-9667a556b299"
     },
     "spec": {
      "progressDeadlineSeconds": 600,
@@ -1597,16 +1598,16 @@
     "status": {
      "conditions": [
       {
-       "lastTransitionTime": "2026-10-21T22:59:02+00:00",
-       "lastUpdateTime": "2026-10-21T22:59:03+00:00",
+       "lastTransitionTime": "2026-10-22T04:18:49+00:00",
+       "lastUpdateTime": "2026-10-22T04:18:49+00:00",
        "message": "ReplicaSet \"worker-598df88d46\" has successfully progressed.",
        "reason": "NewReplicaSetAvailable",
        "status": "True",
        "type": "Progressing"
       },
       {
-       "lastTransitionTime": "2026-10-21T22:59:16+00:00",
-       "lastUpdateTime": "2026-10-21T22:59:16+00:00",
+       "lastTransitionTime": "2026-10-22T04:19:01+00:00",
+       "lastUpdateTime": "2026-10-22T04:19:01+00:00",
        "message": "Deployment does not have minimum availability.",
        "reason": "MinimumReplicasUnavailable",
        "status": "False",
@@ -1618,6 +1619,73 @@
      "terminatingReplicas": 0,
      "unavailableReplicas": 1,
      "updatedReplicas": 1
+    }
+   },
+   "error": null
+  },
+  {
+   "method": "read",
+   "args": {
+    "kind": "serviceaccount",
+    "namespace": "triage-03-oomkilled",
+    "name": "default"
+   },
+   "result": {
+    "apiVersion": "v1",
+    "kind": "ServiceAccount",
+    "metadata": {
+     "creationTimestamp": "2026-10-22T04:18:49+00:00",
+     "name": "default",
+     "namespace": "triage-03-oomkilled",
+     "resourceVersion": "83647",
+     "uid": "0922668b-ef06-4c51-a2f7-536bad6bda12"
+    }
+   },
+   "error": null
+  },
+  {
+   "method": "read",
+   "args": {
+    "kind": "configmap",
+    "namespace": "triage-03-oomkilled",
+    "name": "kube-root-ca.crt"
+   },
+   "result": {
+    "apiVersion": "v1",
+    "data": {
+     "ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDBTCCAe2gAwIBAgIIc/Eloyr7R2UwDQYJKoZIhvcNAQELBQAwFTETMBEGA1UE\nAxMKa3ViZXJuZXRlczAeFw0yNjEwMjAxOTM1MjNaFw0zNjEwMTcxOTQwMjNaMBUx\nEzARBgNVBAMTCmt1YmVybmV0ZXMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQCcuII5I/WZquI4PZaFXwNDaa3vovUz/j4l86mipaLm3f2HTshS2NueN3YS\n7vSm1Zn5EI/dEJQTcsPwkt/gLqcgCN0ZzXkfYhakmTsoIF4pYcSEpDXsl4BQdYd8\njjw/tYF24czyoNqaCihEC4T9pFW0FMwgJHFUQLiZFHkjUBj14svJ8fGhFyN/pljh\nkQTt36RJ8cVqPRvCUJlcve5X6acOPxwGVfBxCHuornbdg0Jbq7bRDU3B/GRR4qlt\nT/VCLISJgmdVAxL9ktKobYEtxovtRAt9ksOX11sHV3pa55lTK0Y5wMhO+asIdP6R\nlqlqy1iZNQr7PN1foXj/g/tguUgDAgMBAAGjWTBXMA4GA1UdDwEB/wQEAwICpDAP\nBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTzsktA+uZLZSSbmdy6bzzVkcZujTAV\nBgNVHREEDjAMggprdWJlcm5ldGVzMA0GCSqGSIb3DQEBCwUAA4IBAQA6z+/lGz/1\nSCdWnRY9AIB7CJe1sGE8zktqjJE3iBEwMK3RRexJE0DO6Dx+MqrmYFqK2b0Ktb2d\nScSYMxC8tO5+g9YNWusd5Xf/qPdELvf/rW9kur5WrR83JrBUnlfLABJXiObKDsrX\nqLOvrid6XbhxdeK09HoM3/nWAMiGE/7c493eh4N6Ofxk5wgHICQszF+nVYufxr5b\nXDM6hviyrYucxFXKvlKD/JQtCbQ6q0dxwCc0jygSsN3ajKuoov/ckQ9ssMbAEwlF\nec2EapBfmXvZBYZaJYv0ZTAxhFtt0cowjtY/ti2Qe6PjDCjJ3RjBLTYe6wcJoAkr\nTmjtqTjyu0pj\n-----END CERTIFICATE-----\n"
+    },
+    "kind": "ConfigMap",
+    "metadata": {
+     "annotations": {
+      "kubernetes.io/description": "Contains a CA bundle that can be used to verify the kube-apiserver when using internal endpoints such as the internal service IP or kubernetes.default.svc. No other usage is guaranteed across distributions of Kubernetes clusters."
+     },
+     "creationTimestamp": "2026-10-22T04:18:49+00:00",
+     "managedFields": [
+      {
+       "apiVersion": "v1",
+       "fieldsType": "FieldsV1",
+       "fieldsV1": {
+        "f:data": {
+         ".": {},
+         "f:ca.crt": {}
+        },
+        "f:metadata": {
+         "f:annotations": {
+          ".": {},
+          "f:kubernetes.io/description": {}
+         }
+        }
+       },
+       "manager": "kube-controller-manager",
+       "operation": "Update",
+       "time": "2026-10-22T04:18:49+00:00"
+      }
+     ],
+     "name": "kube-root-ca.crt",
+     "namespace": "triage-03-oomkilled",
+     "resourceVersion": "83648",
+     "uid": "bb17b95d-043c-45fd-80b6-f3cb0c3602a1"
     }
    },
    "error": null

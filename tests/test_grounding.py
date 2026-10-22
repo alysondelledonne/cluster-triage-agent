@@ -238,3 +238,37 @@ def test_attempts_only_see_tool_output_from_before_them() -> None:
 def test_attempts_skip_submissions_that_failed_the_schema() -> None:
     trace = [ToolRecord("submit_diagnosis", {"category": "Nope"}, "rejected", True, 0.0)]
     assert submission_attempts(trace, NS) == []
+
+
+# ---------- escaped line breaks (DECISIONS.md 038) ----------
+
+DESCRIBE_SCRIPT = (
+    "spec:\n  containers:\n  - args:\n"
+    '    - "echo \\"starting api\\"\\nif [ -z \\"$LISTEN_PORT\\" ]; then\\n  echo \\"fatal: '
+    'required setting LISTEN_PORT is missing\\" >&2\\n  exit 1\\nfi\\n"'
+)
+
+
+def test_a_quote_with_real_line_breaks_matches_yaml_escapes() -> None:
+    # Run 369e87b3bb3e: the script quoted as it reads, against describe's escaped string.
+    records = [record("describe", DESCRIBE_SCRIPT)]
+    quote = (
+        'if [ -z "$LISTEN_PORT" ]; then\n'
+        '  echo "fatal: required setting LISTEN_PORT is missing" >&2\n'
+        "  exit 1\nfi"
+    )
+    (check,) = check_quotes([Evidence(tool="describe", quote=quote)], records)
+    assert check.grounded
+    tabbed = [record("get_logs", "level=error\\tmsg=boom")]
+    (check,) = check_quotes([Evidence(tool="get_logs", quote="level=error\tmsg=boom")], tabbed)
+    assert check.grounded
+
+
+def test_unescaping_doesnt_let_joined_lines_through() -> None:
+    # Run f740db3c3d7d: real lines, but not next to each other in the output.
+    joined = "ready: 0/1\n  failing_conditions:\n  - 'ContainersReady: ContainersNotReady'"
+    output = "ready: 0/1\nrestarts: 0\nfailing_conditions:\n- 'ContainersReady: ContainersNotReady'"
+    (check,) = check_quotes(
+        [Evidence(tool="list_pods", quote=joined)], [record("list_pods", output)]
+    )
+    assert not check.grounded

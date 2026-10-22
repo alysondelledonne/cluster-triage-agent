@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 038 | 2026-10-21 | Fix the two measurement flaws from Run 1: unescape `\n` in grounding; recordings hold the full namespace inventory | Accepted |
 | 037 | 2026-10-21 | First real eval: Haiku 18/18, Grok 17/18; fix two measurement flaws, then prompt version 2 as the one change | Accepted |
 | 036 | 2026-10-21 | `triage-eval` grades replayed scenarios against `expected.yaml`; new gate metrics replace the template's | Accepted |
 | 035 | 2026-10-21 | Remove the template's calculator example and the loop's plain-text mode | Accepted |
@@ -47,6 +48,10 @@ A running log of design and project decisions: what was decided, why, and what i
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 038 — Fix the two measurement flaws from Run 1: unescape `\n` in grounding; recordings hold the full namespace inventory
+**Why:** Carries out the first half of 037, so the prompt version 2 before-and-after measures the agent and not the tools. Grounding: YAML shows a multi-line string as one double-quoted line with `\n` escapes, and a model quotes it as it reads, with real line breaks (run `369e87b3bb3e`); treating `\n` and `\t` like the `\"` and `''` cases already handled (026) fixes that, while lines must still be adjacent in the output, so joined quotes like run `f740db3c3d7d`'s are still rejected (a test checks both). Replay: the recorder read every object in the scenario's manifest plus its pods and ReplicaSets, but not the two objects every namespace has, so a request for the `default` ServiceAccount or anything absent got "not in this recording" instead of the cluster's answer. Reading those two completes the inventory of what `describe` can reach, so replay can answer anything else with the API's own "not found" (or no endpoints for a Service), which is what Grok's six unrecorded calls in Run 1 would have got.
+**Consequence:** `Recording` gains `inventory_complete`; recordings made before this stay False and keep the old behaviour. All six scenarios are re-recorded, and a test requires every committed recording to be complete. `kube-root-ca.crt` holds the cluster's public CA bundle, not a Secret, and `describe` shows only its key names anyway (021). "Not in this recording" remains for calls replay genuinely can't answer (other access reviews, other namespaces), and the evals keep counting those. Next: rerun both models as the "before" for prompt version 2.
 
 ### 037 — First real eval: Haiku 18/18, Grok 17/18; fix two measurement flaws, then prompt version 2 as the one change
 **Why:** Run 1 (evals/RESULTS.md: commit `0c533fe`, prompt version 1, 3 runs per scenario per model, $0.55) gave Claude Haiku 18/18, first-try grounding 1.00, 3.9 tool calls and $0.0022 an incident; `grok-4.20-0309-non-reasoning` 17/18, 0.92, 5.3 calls and $0.028. Reading every anomaly by run ID showed three kinds of problem:

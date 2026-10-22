@@ -76,6 +76,11 @@ class Recording(BaseModel):
     recorded_at: str
     server_version: str
     agent_user: str = ""
+    # True when the recorder read every object `describe` can reach in the namespace
+    # (the scenario's objects, its pods and ReplicaSets, and the namespace's built-in
+    # ServiceAccount and ConfigMap). Replay can then answer any other name with the
+    # API's own "not found" (DECISIONS.md 038). Recordings made before that are False.
+    inventory_complete: bool = False
     calls: list[Call] = []
 
     def save(self, path: Path) -> None:
@@ -200,12 +205,47 @@ class RecordingReader:
         )
 
 
+# How the API names each kind in a "not found" message, e.g. deployments.apps "x" not found.
+API_RESOURCE = {
+    "pod": "pods",
+    "deployment": "deployments.apps",
+    "replicaset": "replicasets.apps",
+    "service": "services",
+    "configmap": "configmaps",
+    "serviceaccount": "serviceaccounts",
+    "role": "roles.rbac.authorization.k8s.io",
+    "rolebinding": "rolebindings.rbac.authorization.k8s.io",
+}
+
+
+def not_found(kind: str, name: str) -> KubeError:
+    return KubeError(404, f'{API_RESOURCE[kind]} "{name}" not found')
+
+
 class ReplayReader:
-    """A `KubeReader` that answers from a `Recording` instead of a cluster."""
+    """A `KubeReader` that answers from a `Recording` instead of a cluster.
+
+    With a complete inventory, questions about objects that don't exist get the
+    same answers a cluster gives: "not found" for a read or a pod's logs, no
+    endpoints for a Service. Anything else the recording lacks raises NotRecorded.
+    """
 
     def __init__(self, recording: Recording) -> None:
         self.recording = recording
         self.calls = {_key(c.method, c.args): c for c in recording.calls}
+        self.known = {
+            (c.args["kind"], c.args["name"])
+            for c in recording.calls
+            if c.method == "read" and c.error is None
+        }
+
+    def _missing(self, kind: str, namespace: str, name: str) -> bool:
+        """Is this an object the cluster didn't have, rather than one we didn't ask about?"""
+        return (
+            self.recording.inventory_complete
+            and namespace == self.recording.namespace
+            and (kind, name) not in self.known
+        )
 
     def _replay(self, method: str, args: dict[str, Any]) -> Any:
         call = self.calls.get(_key(method, args))
@@ -231,6 +271,8 @@ class ReplayReader:
     ) -> str:
         # Logs are recorded at the maximum tail, so any smaller tail the model asks
         # for is the end of that text rather than a separate recording.
+        if self._missing("pod", namespace, pod):
+            raise not_found("pod", pod)
         if container is None:
             container = self._only_container(namespace, pod, previous)
         args = {"namespace": namespace, "pod": pod, "container": container, "previous": previous}
@@ -259,10 +301,14 @@ class ReplayReader:
         return names[0] if names else None
 
     def read(self, kind: Kind, namespace: str, name: str) -> Obj:
+        if self._missing(kind, namespace, name):
+            raise not_found(kind, name)
         result: Obj = self._replay("read", {"kind": kind, "namespace": namespace, "name": name})
         return result
 
     def list_endpoint_slices(self, namespace: str, service: str) -> list[Obj]:
+        if self._missing("service", namespace, service):
+            return []  # the API's answer: no EndpointSlices carry that service's label
         args = {"namespace": namespace, "service": service}
         result: list[Obj] = self._replay("list_endpoint_slices", args)
         return result

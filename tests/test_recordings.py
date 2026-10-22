@@ -131,3 +131,10 @@ def test_every_tool_result_stays_under_the_cap(scenario: Scenario) -> None:
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda s: s.name)
 def test_recording_holds_no_secrets(scenario: Scenario) -> None:
     check_no_secrets(recording_path(scenario).read_text())
+
+
+@pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda s: s.name)
+def test_recording_has_the_namespaces_full_inventory(scenario: Scenario) -> None:
+    # Needed for replay to answer unknown objects with "not found" (DECISIONS.md 038);
+    # re-record with `uv run triage-seed record` if this fails.
+    assert Recording.load(recording_path(scenario)).inventory_complete

@@ -25,7 +25,8 @@ from triage.providers.fake import ScriptedProvider, turn
 REPO = Path(__file__).resolve().parents[1]
 RECORDING = REPO / "tests" / "fixtures" / "scenarios" / "06-rbac-denied" / "recording.json"
 NS = "triage-06-rbac-denied"
-POD = "reporter-75dd647696-4js94"
+# The pod's name changes every time the scenario is re-seeded, so read it from the recording.
+POD = ReplayReader(Recording.load(RECORDING)).list_pods(NS)[0]["metadata"]["name"]
 
 FIX = f"""apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
