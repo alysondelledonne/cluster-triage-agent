@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 049 | 2026-10-22 | Make the repo public; the commit email and DECISIONS 008's mention of Red Hat stay as they are | Accepted |
 | 048 | 2026-10-22 | Scan for secrets with gitleaks: the whole history in CI on every push, staged changes in a pre-commit hook | Accepted |
 | 047 | 2026-10-22 | The README is rewritten for a stranger, the demo GIF is recorded from a VHS tape, and Milestone 3 is done | Accepted |
 | 046 | 2026-10-22 | All three workflows have passed a first run; Run 5 (on GitHub) repeats Run 4's 18/18; Grok's event-quote habit noted for after M3 | Accepted |
@@ -58,6 +59,10 @@ A running log of design and project decisions: what was decided, why, and what i
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 049 — Make the repo public; the commit email and DECISIONS 008's mention of Red Hat stay as they are
+**Why:** Milestone 3 is done and the plan is to apply once Project 1 ships. Checked on 2026-10-22 before publishing: gitleaks finds no secrets in any of the 27 commits (048); no homelab hostnames, home-directory paths or contact details are in the tracked files or recordings; `.env` and `runs/` are git-ignored; the workflows only expose keys to steps a person with write access starts, and pull requests from forks get no secrets. Two things would become visible, and she decided both: every commit's author email (`ahdelledonne@gmail.com`) is fine to show, since it's already public; and DECISIONS 008 keeps naming Red Hat, since it records that the employer's public guidelines were checked and that no employer code, data or environments are used.
+**Consequence:** The repo goes public with its full history; nothing is rewritten, so commit IDs quoted in RESULTS.md and DECISIONS, and the fingerprints in `.gitleaksignore`, stay valid. Next on GitHub: secret scanning and push protection under Settings → Advanced Security. The resume baseline and portfolio plan get the repo link once it's public.
 
 ### 048 — Scan for secrets with gitleaks: the whole history in CI on every push, staged changes in a pre-commit hook
 **Why:** Before the repo goes public, its whole history has to be free of secrets, since a key deleted in a later commit is still published. A one-off scan with gitleaks v8.30.1 on 2026-10-22 covered all 25 commits and found two false positives, both from the generic API-key rule: the deliberately fake JWT that tests the recordings' secret check (`tests/test_replay.py`; it decodes to `{"sub":"x"}` and the word "signature") and a pod name in a hand-written fixture (`tests/fixtures/kube/pods.json`). Two automatic checks keep it that way, chosen 2026-10-22: CI on every push and PR, and a hook before each commit. The existing `detect-private-key` hook and `check_no_secrets` on recordings catch narrower cases.
