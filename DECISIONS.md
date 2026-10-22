@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 039 | 2026-10-22 | Run 2 (the "before"): Haiku 18/18, Grok 15/18; require the call on the forced turn and fix two metrics before prompt version 2 | Proposed |
 | 038 | 2026-10-21 | Fix the two measurement flaws from Run 1: unescape `\n` in grounding; recordings hold the full namespace inventory | Accepted |
 | 037 | 2026-10-21 | First real eval: Haiku 18/18, Grok 17/18; fix two measurement flaws, then prompt version 2 as the one change | Accepted |
 | 036 | 2026-10-21 | `triage-eval` grades replayed scenarios against `expected.yaml`; new gate metrics replace the template's | Accepted |
@@ -45,9 +46,19 @@ A running log of design and project decisions: what was decided, why, and what i
 
 ## Open questions
 
+- **Rerun the "before" after 039's fixes, or not.** A Run 3 with the loop and metric fixes and prompt version 1 would keep the prompt version 2 comparison to one change (about $0.55). Skipping it saves the cost, but then the loop fix and the prompt change land in the same before-and-after, and their effects can only be told apart from the traces (forced-turn failures against quote rejections).
+- **Should scenario 1 accept ConfigError?** Its container exits because a required setting is missing, so ConfigError is a defensible reading; the scenario was written as CrashLoop (`expected.yaml`). Changing it would change the grading of past runs, so decide before M3's final results table.
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 039 — Run 2 (the "before"): Haiku 18/18, Grok 15/18; require the call on the forced turn and fix two metrics before prompt version 2
+**Why:** Run 2 (evals/RESULTS.md: commit `a61b8de`, prompt version 1, recordings with the full inventory from 038, $0.55) confirmed the measurement fixes: no unrecorded calls for either model, no quote rejected for escaping, and Haiku unchanged (18/18, first-try grounding 1.00, $0.0023 an incident). Grok fell to 15/18, and its traces showed problems that would distort the prompt version 2 comparison if left in place:
+- **The forced turn doesn't force.** With the API's real `not found` for Role and RoleBinding `reporter`, Grok kept looking (events for Role, ClusterRole and their bindings) until the 12-call cap in two scenario 6 runs, then answered in plain text on the last turn, with the right diagnosis. The loop offers only `submit_diagnosis` there (029) but never tells the API that a tool call is required, so a model can decline. Both APIs can require it: Anthropic's `tool_choice: {type: tool, name}` and the OpenAI-compatible `tool_choice` naming the function.
+- **`cap_rate` undercounts.** It counts runs that submitted at the cap, so it read 0.0 although two runs hit the cap.
+- **`first_try_grounding` mixes in runs with no submission.** A run with no schema-valid submission scores 0, so a run that never submitted lowers an evidence metric. Over the 16 Grok runs that submitted something, first tries averaged 0.94.
+- **Quoting, again.** Grok's scenario 1 miss (`bf8a33de6964`) was three rejected submissions joining an event's `type` and `message` fields into one quote, the habit prompt version 2 targets. All three named ConfigError rather than CrashLoop.
+**Consequence (proposed, waiting for approval):** before prompt version 2, (1) the forced turn requires the call: the `Provider.complete` interface gains a way to require a named tool, mapped to each API's `tool_choice`, and the fakes record it so tests can check it; (2) `at_cap` means the cap was reached, whatever the outcome; (3) `first_try_grounding` averages only runs with at least one schema-valid submission. Runs 1 and 2 keep the metrics they were saved with; RESULTS.md notes the change of definition. Whether to rerun the "before" after these fixes (another $0.55) or go straight to prompt version 2 is in Open questions.
 
 ### 038 — Fix the two measurement flaws from Run 1: unescape `\n` in grounding; recordings hold the full namespace inventory
 **Why:** Carries out the first half of 037, so the prompt version 2 before-and-after measures the agent and not the tools. Grounding: YAML shows a multi-line string as one double-quoted line with `\n` escapes, and a model quotes it as it reads, with real line breaks (run `369e87b3bb3e`); treating `\n` and `\t` like the `\"` and `''` cases already handled (026) fixes that, while lines must still be adjacent in the output, so joined quotes like run `f740db3c3d7d`'s are still rejected (a test checks both). Replay: the recorder read every object in the scenario's manifest plus its pods and ReplicaSets, but not the two objects every namespace has, so a request for the `default` ServiceAccount or anything absent got "not in this recording" instead of the cluster's answer. Reading those two completes the inventory of what `describe` can reach, so replay can answer anything else with the API's own "not found" (or no endpoints for a Service), which is what Grok's six unrecorded calls in Run 1 would have got.

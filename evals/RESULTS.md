@@ -13,6 +13,73 @@ uv run triage-eval --provider anthropic --provider grok --repeats 3 --save
 
 ---
 
+## Run 2: 2026-10-21, prompt version 1, after the measurement fixes
+
+The "before" for prompt version 2, rerun after DECISIONS 038 fixed grounding of `\n` escapes and gave replay the namespace's full inventory. Same models, same prompt, same 3 runs per scenario.
+
+**Setup**
+
+| | |
+| --- | --- |
+| When | 2026-10-21 21:38–21:43 PT (2026-10-22 04:43 UTC) |
+| Code | commit `a61b8de` (DECISIONS 038) |
+| Prompt | version 1 (DECISIONS 027), unchanged |
+| Cluster data | all six scenarios re-recorded on 2026-10-21 with the full namespace inventory (038), replayed |
+| Models | `claude-haiku-5-5` and `grok-4.20-0309-non-reasoning`, prices as in Run 1 |
+| Runs | 3 per scenario per model, 36 in total, one at a time |
+| Results file | `evals/results/20261022T044311Z-claude-haiku-5-5+grok-4.20-0309-non-reasoning.json` |
+| Total cost | $0.55: Haiku $0.04 (304K tokens in, 21K out), Grok $0.51 (386K in, 9K out) |
+
+**Summary**
+
+| model | runs | accuracy | category_accuracy | submitted_rate | first_try_grounding | avg_tool_calls | cap_rate | unrecorded_call_rate | latency_p50_s | latency_p95_s | cost_per_incident_usd |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| claude-haiku-5-5 | 18 | 1.0 | 1.0 | 1.0 | 1.0 | 4.0 | 0.0 | 0.0 | 6.53 | 9.21 | 0.00228 |
+| grok-4.20-0309-non-reasoning | 18 | 0.833 | 0.833 | 0.833 | 0.833 | 5.44 | 0.0 | 0.0 | 5.51 | 16.98 | 0.02808 |
+
+Against Run 1: Haiku is unchanged within noise (18/18 both times, 4.0 calls against 3.9, $0.0023 against $0.0022). Grok fell from 17/18 to 15/18. `unrecorded_call_rate` is 0 for both models, so the replay fix worked: every call got the answer a real cluster would give.
+
+**Per scenario** (correct runs; tool calls, latency and confidence for each of the three runs; mean cost per run)
+
+| scenario | Haiku correct | Haiku tool calls | Haiku latency (s) | Haiku cost | Grok correct | Grok tool calls | Grok latency (s) | Grok cost |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 01-crashloop | 3/3 | 5, 5, 5 | 8.1, 7.7, 8.2 | $0.0027 | **2/3** | 11, 7, 5 | 19.8, 17.0, 9.5 | $0.0491 |
+| 02-imagepull | 3/3 | 3, 3, 3 | 5.8, 5.2, 5.7 | $0.0019 | 3/3 | 3, 3, 3 | 5.6, 5.5, 7.1 | $0.0152 |
+| 03-oomkilled | 3/3 | 4, 3, 3 | 9.9, 9.2, 5.8 | $0.0026 | 3/3 | 4, 3, 3 | 5.5, 4.3, 4.1 | $0.0160 |
+| 04-missing-config | 3/3 | 4, 4, 4 | 8.0, 6.6, 5.6 | $0.0019 | 3/3 | 4, 4, 4 | 4.8, 4.8, 5.9 | $0.0157 |
+| 05-failing-probe | 3/3 | 4, 4, 3 | 5.2, 5.9, 5.0 | $0.0019 | 3/3 | 3, 3, 3 | 3.9, 4.2, 4.0 | $0.0145 |
+| 06-rbac-denied | 3/3 | 5, 5, 5 | 6.5, 6.8, 6.9 | $0.0026 | **1/3** | 11, 12, 12 | 14.3, 14.0, 13.9 | $0.0580 |
+
+Confidence: Haiku 0.85–0.95 on every run. Grok 0.90–0.95 on every run that submitted.
+
+**Every anomaly, by run**
+
+| run ID | model | scenario | what happened | verdict |
+| --- | --- | --- | --- | --- |
+| `ff4411967fd0` | Grok | 06 | **No diagnosis.** Read logs, the Deployment and ServiceAccount, ran `can_i` (allowed: false), then asked for Role and RoleBinding `reporter` and got the API's `not found`. Then spent its last four calls on `get_events` for kinds Role, RoleBinding, ClusterRole and ClusterRoleBinding, reaching the 12-call cap. On the forced last turn, where `submit_diagnosis` is the only tool offered, it wrote the right diagnosis (RBACDenied, missing Role/RoleBinding) as plain text instead of calling the tool. | **A gap in the agent loop:** the forced turn offers only the finish tool but doesn't require a tool call, so a model can still answer in text |
+| `b6399304a283` | Grok | 06 | Identical path, the same 12 calls in the same order, the same plain-text answer on the forced turn. | Same gap |
+| `79bd8223680f` | Grok | 06 | Same path to the two `not found`s, then two `get_events` and a second `list_pods` (11 calls), one nudge, then submitted. Right answer, confidence 0.95. | Correct, but explored far past what it needed |
+| `bf8a33de6964` | Grok | 01 | **No diagnosis.** Three submissions rejected, so the run ended. All three named **ConfigError** on Deployment/api, not CrashLoop, so even an accepted one would have been graded wrong. Rejected quotes: `Warning Back-off restarting failed container ...` (the event's `type: Warning` field joined to its `message`, which are separate lines), then the same joined quote twice more with the full message. Also, on the first attempt, the container's `args` rewritten in flow style (`args: ["echo ..."]`) where `describe` shows a block list. | Correct rejections; the same joined-quote habit as Run 1's scenario 5 miss |
+| `6ca572090b46` | Grok | 01 | One rejection, then accepted. Rejected quotes: `state: 'terminated: Error, exit code 1', restarts: 2, ready: 0/1` (three separate `list_pods` fields stitched into one line, the first one trimmed) and the `args` again in flow style with a note appended (`, command: [sh, -c], no env section`). | Correct rejections |
+| `9246c6bc9baa` | Haiku | 03 | One rejection: an evidence item carried an extra `reason` field (as in Run 1's `5907d32dcaad`). Corrected on the next submission. | Schema working as designed |
+| `ea579f0a2c1d` | Haiku | 03 | One rejection: `confidence` missing. Corrected on the next submission. | Schema working as designed |
+
+No grounding rejection in this run was a false negative: every rejected quote was checked against the tool output in the trace.
+
+**What this says**
+
+1. **The measurement fixes did what they were for.** No unrecorded calls, and no quote rejected for escaping. Haiku's results barely moved, which is what a fix to the measuring tools should look like for a model that wasn't affected.
+2. **A realistic "not found" made scenario 6 harder for Grok, and exposed a gap in the loop.** In Run 1 replay answered "not in this recording" for the Role and RoleBinding, and two of Grok's three runs submitted after 7 and 9 calls. Now it gets the API's `not found`, which is real evidence for RBACDenied, but it keeps searching, including events for cluster-wide kinds, until the cap. Twice it then answered in plain text on the forced turn. The loop offers only `submit_diagnosis` on that turn but doesn't tell the API that a tool call is required (`tool_choice`), so the model can still decline. Both APIs document a way to require one (Anthropic's `tool_choice` of type `tool`; xAI's OpenAI-compatible `tool_choice` naming a function, or `"required"`). This is a gap in my loop, not only in the model.
+3. **Grok's quoting habit is unchanged.** Joining separate fields or lines into one quote, rewriting YAML in another style, and appending notes caused both scenario 1 problems, as in Run 1. This is what prompt version 2 is aimed at.
+4. **Two metrics undercount.** `cap_rate` counts only runs that *submitted* at the cap, so it reads 0.0 although two Grok runs hit it. `first_try_grounding` scores a run with no submission at all as 0, which mixes "never submitted" into an evidence metric: of the 16 Grok runs that submitted something, first tries averaged 0.94 grounded.
+5. **Cost and the choice of model are unchanged.** Haiku: 18/18 at $0.0023 an incident. Grok: 15/18 at $0.028, about 12x more.
+
+**Caveats:** 3 runs per scenario is still small; Grok's drop from 17/18 to 15/18 is two runs, and both scenario 6 failures followed an identical path, so they are less independent than they look. Scenario 1's grading accepts only CrashLoop; `bf8a33de6964` argued ConfigError (the crash is caused by a missing setting), which is defensible but would have been graded wrong; whether to accept it is an open question in DECISIONS.md, not changed here.
+
+**What changes next** (DECISIONS 039, waiting for approval): fix the loop so the forced turn requires the `submit_diagnosis` call, and fix the two metrics, before prompt version 2, so the before-and-after measures the prompt and not the loop.
+
+---
+
 ## Run 1: 2026-10-21, prompt version 1
 
 **Setup**
