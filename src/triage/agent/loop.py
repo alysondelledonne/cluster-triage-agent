@@ -3,16 +3,12 @@
 The model is asked for a turn; any tool calls are run and their results sent
 back. Every run returns its full trace plus token, latency and cost totals.
 
-How a run ends depends on whether a finish tool is given:
-
-- Without one (the template's examples), the run ends when the model answers
-  without calling a tool, or after `max_steps` turns.
-- With one (triage, DECISIONS.md 024), the run only ends on a submission the
-  finish tool accepts. The model gets at most `max_tool_calls` investigative
-  calls; after that it gets one forced turn where the finish tool is the only
-  tool offered (DECISIONS.md 005). A plain-text answer gets a nudge, and a
-  rejected submission goes back with the reasons; both are limited, so every
-  run ends.
+A run only ends on a submission the finish tool accepts (DECISIONS.md 024; for
+triage that is `submit_diagnosis`). The model gets at most `max_tool_calls`
+investigative calls; after that it gets one forced turn where the finish tool is
+the only tool offered (DECISIONS.md 005). A plain-text answer gets a nudge, and a
+rejected submission goes back with the reasons; both are limited, so every run
+ends. The template's plain-text mode was removed with its example (DECISIONS.md 035).
 """
 
 from __future__ import annotations
@@ -36,7 +32,7 @@ DEFAULT_MAX_TOOL_CALLS = 12  # DECISIONS.md 024
 MAX_NUDGES = 2  # plain-text answers tolerated before giving up
 MAX_REJECTIONS = 2  # rejected submissions sent back for another try
 
-Stopped = Literal["answered", "max_steps", "submitted", "submitted_at_cap", "no_submission"]
+Stopped = Literal["submitted", "submitted_at_cap", "no_submission"]
 
 
 @dataclass
@@ -127,10 +123,9 @@ async def run_agent(
     system: str,
     user_input: str,
     tools: list[Tool],
-    max_steps: int = 8,
     run_log: str | None = None,
     *,
-    finish: Finish | None = None,
+    finish: Finish,
     max_tool_calls: int = DEFAULT_MAX_TOOL_CALLS,
     info: dict[str, Any] | None = None,
 ) -> AgentResult:
@@ -139,7 +134,7 @@ async def run_agent(
         provider=provider.name,
         model=provider.model,
         final_text="",
-        stopped="max_steps",
+        stopped="no_submission",
         steps=0,
         info=dict(info or {}),
     )
@@ -159,10 +154,7 @@ async def run_agent(
         return turn
 
     with span("agent.run", provider=provider.name, model=provider.model, input=user_input):
-        if finish is None:
-            await _answer_loop(ask, messages, result, tools, max_steps)
-        else:
-            await _finish_loop(ask, messages, result, tools, finish, max_tool_calls)
+        await _finish_loop(ask, messages, result, tools, finish, max_tool_calls)
 
     result.total_latency_s = time.perf_counter() - started
     # Unknown price on any turn makes the run's cost unknown rather than understated.
@@ -173,24 +165,6 @@ async def run_agent(
 
 
 Ask = Callable[[list[ToolSpec]], Awaitable[ModelTurn]]
-
-
-async def _answer_loop(
-    ask: Ask, messages: list[Message], result: AgentResult, tools: list[Tool], max_steps: int
-) -> None:
-    """Without a finish tool: stop at the first plain-text answer or after max_steps turns."""
-    by_name = {t.spec.name: t for t in tools}
-    specs = [t.spec for t in tools]
-    for _ in range(max_steps):
-        turn = await ask(specs)
-        if not turn.tool_calls:
-            result.final_text = turn.text
-            result.stopped = "answered"
-            return
-        for call in turn.tool_calls:
-            rec = await _run_tool(by_name, call)
-            result.tool_calls.append(rec)
-            messages.append(_tool_message(call, rec))
 
 
 async def _finish_loop(

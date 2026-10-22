@@ -1,12 +1,19 @@
-"""Eval harness: run every case, grade it, report metrics, and gate on a baseline.
+"""Eval harness: diagnose every recorded scenario, grade it, report metrics, gate on a baseline.
 
-    uv run triage-eval --provider fake --gate          # offline; what CI runs
-    uv run triage-eval --provider anthropic --repeats 3
-    uv run triage-eval --provider anthropic --provider grok   # compare models
+    uv run triage-eval --provider fake --gate                     # offline; what CI runs
+    uv run triage-eval --provider anthropic --repeats 3 --save    # costs a few cents
+    uv run triage-eval --provider anthropic --provider grok --repeats 3 --save
 
-Each case in evals/cases.jsonl gives an input, the expected answer, and the tool
-(and arguments) a good agent would use. Results are written to evals/results/
-as JSON plus a Markdown table you can paste into the README.
+Each case is a scenario (scenarios/NN-name/) replayed from its recording
+(tests/fixtures/scenarios/NN-name/recording.json), so every model sees the same
+cluster output and no cluster is needed (DECISIONS.md 033). A run goes through
+the same `diagnose()` as the `triage` command and is graded against the
+scenario's expected.yaml (DECISIONS.md 036).
+
+`--provider fake` is a scripted "golden" model: it follows a sensible tool path
+and submits the expected answer, quoting the real signal line from the replayed
+output. It checks the harness, grading, grounding and gate end to end, for free.
+`--save` writes evals/results/<time>-<models>.json and evals/results/latest.md.
 """
 
 from __future__ import annotations
@@ -14,7 +21,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import re
 import statistics
 import sys
 from dataclasses import dataclass
@@ -22,81 +28,153 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from mcp.client import Client
-
-from ..agent.loop import AgentResult, run_agent
-from ..agent.mcp_tools import tools_from_mcp
+from ..agent.grounding import submission_attempts
+from ..agent.loop import AgentResult
+from ..agent.submit import SUBMIT_DIAGNOSIS
+from ..cli import ModelAPIError, diagnose
 from ..config import load_settings
-from ..mcp_server.server import server
+from ..mcp_server.replay import Recording, ReplayReader
 from ..providers import Provider, get_provider
 from ..providers.base import Message, ModelTurn, ToolCall
 from ..providers.fake import PolicyProvider
-
-# The template's example prompt, for the calculator cases. It goes with them in
-# Milestone 3, when the evals move to the scenarios (DECISIONS.md 025).
-SYSTEM_PROMPT = (
-    "You are a careful assistant. Use the available tools for any arithmetic or "
-    "counting instead of working it out yourself. Answer in one short sentence."
+from ..scenarios import (
+    ContainerTerminated,
+    ContainerWaiting,
+    EventSeen,
+    LogContains,
+    Scenario,
+    discover,
+    find,
 )
 
 ROOT = Path(__file__).resolve().parents[3]
 EVAL_DIR = ROOT / "evals"
+SCENARIOS_DIR = ROOT / "scenarios"
+RECORDINGS_DIR = ROOT / "tests" / "fixtures" / "scenarios"
+NOT_RECORDED = "not in this recording"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Case:
-    id: str
-    input: str
-    expected_answer: str
-    expected_tool: str
-    expected_args: dict[str, Any]
+    scenario: Scenario
+    recording: Recording
 
 
-def load_cases(path: Path = EVAL_DIR / "cases.jsonl") -> list[Case]:
-    lines = path.read_text().splitlines()
-    return [Case(**json.loads(line)) for line in lines if line.strip()]
+def load_cases(
+    scenarios_dir: Path = SCENARIOS_DIR,
+    recordings_dir: Path = RECORDINGS_DIR,
+    names: list[str] | None = None,
+) -> list[Case]:
+    scenarios = discover(scenarios_dir)
+    chosen = [find(scenarios, n) for n in names] if names else scenarios
+    cases = []
+    for s in chosen:
+        path = recordings_dir / s.name / "recording.json"
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"no recording for {s.name}; run: uv run triage-seed record {s.name}"
+            )
+        cases.append(Case(scenario=s, recording=Recording.load(path)))
+    return cases
+
+
+# ---------- the golden model ----------
+
+
+def _signal_texts(case: Case) -> list[str]:
+    """What the failure looks like in tool output, from the scenario's wait condition."""
+    cond = case.scenario.expected.seed.wait_for
+    if isinstance(cond, ContainerWaiting):
+        return list(cond.reasons)
+    if isinstance(cond, ContainerTerminated):
+        return [cond.reason]
+    if isinstance(cond, EventSeen):
+        return [f"reason: {cond.reason}"]
+    assert isinstance(cond, LogContains)
+    return [cond.text]
+
+
+def _plan(case: Case) -> list[ToolCall]:
+    """The golden model's tool calls: pods first, then wherever the signal shows."""
+    plan = [ToolCall("g1", "list_pods", {})]
+    cond = case.scenario.expected.seed.wait_for
+    if isinstance(cond, EventSeen):
+        plan.append(ToolCall("g2", "get_events", {}))
+    if isinstance(cond, LogContains):
+        ns = case.recording.namespace
+        pod = ReplayReader(case.recording).list_pods(ns)[0]["metadata"]["name"]
+        plan.append(ToolCall("g2", "get_logs", {"pod": pod}))
+    return plan
 
 
 def golden_provider(case: Case) -> Provider:
-    """A fake model that does exactly what the case expects: call the expected
-    tool, then answer with whatever the tool returned. CI uses it to test the
-    pipeline end to end for free."""
+    """A fake model that does what a good agent would on this scenario: look, then
+    submit the expected answer with the signal line quoted from the real output."""
+    plan = _plan(case)
+    expected = case.scenario.expected
+    signals = _signal_texts(case)
+    ref = expected.affected_resource
+    api_version = {"Deployment": "apps/v1"}.get(ref.kind, "v1")
 
     def policy(messages: list[Message]) -> ModelTurn:
-        last = messages[-1]
-        if last.role == "user":
-            call = ToolCall(id="call_1", name=case.expected_tool, arguments=case.expected_args)
+        results = [m for m in messages if m.role == "tool"]
+        if len(results) < len(plan):
+            call = plan[len(results)]
             return ModelTurn("", [call], 50, 10, 0.0, "fake", "tool_use")
-        return ModelTurn(f"The answer is {last.content}.", [], 80, 12, 0.0, "fake", "end_turn")
+        output = results[len(plan) - 1].content
+        line = next(ln for ln in output.splitlines() if any(s in ln for s in signals))
+        submission = {
+            "category": expected.category.value,
+            "affected_resource": {"kind": ref.kind, "name": ref.name},
+            "root_cause": f"Golden answer for {case.scenario.name}: {expected.description}.",
+            "evidence": [{"tool": plan[-1].name, "quote": line.strip()[:500]}],
+            "proposed_fix": {
+                "explanation": "Placeholder fix from the golden model.",
+                "yaml": f"apiVersion: {api_version}\nkind: {ref.kind}\n"
+                f"metadata:\n  name: {ref.name}\n  namespace: {expected.namespace}\n",
+            },
+            "confidence": 1.0,
+        }
+        call = ToolCall("submit", SUBMIT_DIAGNOSIS, submission)
+        return ModelTurn("", [call], 80, 40, 0.0, "fake", "tool_use")
 
     return PolicyProvider(policy)
 
 
-def _numbers(text: str) -> set[str]:
-    found = re.findall(r"-?\d[\d,]*(?:\.\d+)?", text)
-    out = set()
-    for n in found:
-        n = n.replace(",", "")
-        out.add(n[:-2] if n.endswith(".0") else n)
-    return out
+# ---------- grading ----------
 
 
 def grade(case: Case, result: AgentResult) -> dict[str, Any]:
-    expected = case.expected_answer.strip()
-    answer_ok = expected in _numbers(result.final_text) or (
-        expected.lower() in result.final_text.lower()
-    )
-    tool_ok = any(c.name == case.expected_tool and not c.is_error for c in result.tool_calls)
+    """One run against expected.yaml, plus how it got there."""
+    expected = case.scenario.expected
+    d = result.submission
+    category_ok = d is not None and d.category == expected.category
+    resource_ok = d is not None and d.affected_resource in [
+        expected.affected_resource,
+        *expected.also_accept,
+    ]
+    attempts = submission_attempts(result.tool_calls, expected.namespace)
+    looks = [t for t in result.tool_calls if t.name != SUBMIT_DIAGNOSIS]
     return {
-        "case": case.id,
-        "answer_ok": answer_ok,
-        "tool_ok": tool_ok,
-        "answered": result.stopped == "answered",
-        "steps": result.steps,
+        "scenario": case.scenario.name,
+        "model": result.model,
+        "run_id": result.run_id,
+        "correct": category_ok and resource_ok,
+        "category_ok": category_ok,
+        "resource_ok": resource_ok,
+        "got": f"{d.category.value} {d.affected_resource}" if d is not None else "no diagnosis",
+        "confidence": d.confidence if d is not None else None,
+        "submitted": result.stopped in ("submitted", "submitted_at_cap"),
+        "at_cap": result.stopped == "submitted_at_cap",
+        "first_try_grounding": attempts[0].grounded_share if attempts else 0.0,
+        "rejected_submissions": result.rejected_submissions,
+        "nudges": result.nudges,
+        "tool_calls": len(looks),
+        "unrecorded_calls": sum(1 for t in looks if NOT_RECORDED in t.result),
         "latency_s": round(result.total_latency_s, 3),
+        "input_tokens": result.input_tokens,
+        "output_tokens": result.output_tokens,
         "cost_usd": result.cost_usd,
-        "final_text": result.final_text,
-        "tools": [c.name for c in result.tool_calls],
     }
 
 
@@ -111,39 +189,25 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     n = len(rows)
     costs = [r["cost_usd"] for r in rows]
     lat = [r["latency_s"] for r in rows]
+    calls = sum(r["tool_calls"] for r in rows)
+    known_cost = not any(c is None for c in costs)
     return {
         "runs": n,
-        "answer_accuracy": round(sum(r["answer_ok"] for r in rows) / n, 3),
-        "tool_accuracy": round(sum(r["tool_ok"] for r in rows) / n, 3),
-        "answered_rate": round(sum(r["answered"] for r in rows) / n, 3),
-        "avg_steps": round(statistics.mean(r["steps"] for r in rows), 2),
-        "latency_p50_s": round(_pct(lat, 0.5), 3),
-        "latency_p95_s": round(_pct(lat, 0.95), 3),
-        "cost_per_run_usd": None if any(c is None for c in costs) else round(sum(costs) / n, 6),
+        "accuracy": round(sum(r["correct"] for r in rows) / n, 3),
+        "category_accuracy": round(sum(r["category_ok"] for r in rows) / n, 3),
+        "submitted_rate": round(sum(r["submitted"] for r in rows) / n, 3),
+        "first_try_grounding": round(statistics.mean(r["first_try_grounding"] for r in rows), 3),
+        "avg_tool_calls": round(calls / n, 2),
+        "cap_rate": round(sum(r["at_cap"] for r in rows) / n, 3),
+        "unrecorded_call_rate": round(sum(r["unrecorded_calls"] for r in rows) / max(1, calls), 3),
+        "latency_p50_s": round(_pct(lat, 0.5), 2),
+        "latency_p95_s": round(_pct(lat, 0.95), 2),
+        "cost_per_incident_usd": round(sum(c or 0.0 for c in costs) / n, 5) if known_cost else None,
     }
 
 
-async def run_suite(provider_name: str, cases: list[Case], repeats: int) -> list[dict[str, Any]]:
-    settings = load_settings()
-    rows: list[dict[str, Any]] = []
-    async with Client(server) as client:
-        tools = await tools_from_mcp(client)
-        for case in cases:
-            for _ in range(repeats):
-                provider = (
-                    golden_provider(case)
-                    if provider_name == "fake"
-                    else get_provider(provider_name, settings)
-                )
-                result = await run_agent(
-                    provider, SYSTEM_PROMPT, case.input, tools, max_steps=settings.max_steps
-                )
-                rows.append(grade(case, result))
-    return rows
-
-
 def check_gate(summary: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
-    """Return a list of failures; empty means the gate passes."""
+    """Return a list of failures; empty means the gate passes. Baseline values are minimums."""
     return [
         f"{k}: {summary.get(k)} < baseline {v}"
         for k, v in baseline.items()
@@ -151,56 +215,120 @@ def check_gate(summary: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
     ]
 
 
-def markdown_table(summaries: dict[str, dict[str, Any]]) -> str:
-    cols = [
-        "answer_accuracy",
-        "tool_accuracy",
-        "answered_rate",
-        "avg_steps",
-        "latency_p50_s",
-        "latency_p95_s",
-        "cost_per_run_usd",
-    ]
-    lines = ["| model | " + " | ".join(cols) + " |", "|" + " --- |" * (len(cols) + 1)]
-    for name, s in summaries.items():
-        lines.append(f"| {name} | " + " | ".join(str(s.get(c)) for c in cols) + " |")
-    return "\n".join(lines)
+SUMMARY_COLUMNS = [
+    "runs",
+    "accuracy",
+    "category_accuracy",
+    "submitted_rate",
+    "first_try_grounding",
+    "avg_tool_calls",
+    "cap_rate",
+    "unrecorded_call_rate",
+    "latency_p50_s",
+    "latency_p95_s",
+    "cost_per_incident_usd",
+]
+
+
+def markdown_tables(all_rows: dict[str, list[dict[str, Any]]]) -> tuple[str, str]:
+    """A summary row per model, and a scenario x model grid of correct runs."""
+    summary = ["| model | " + " | ".join(SUMMARY_COLUMNS) + " |"]
+    summary.append("|" + " --- |" * (len(SUMMARY_COLUMNS) + 1))
+    for name, rows in all_rows.items():
+        s = summarize(rows)
+        summary.append(f"| {name} | " + " | ".join(str(s[c]) for c in SUMMARY_COLUMNS) + " |")
+
+    models = list(all_rows)
+    grid = ["| scenario | " + " | ".join(models) + " |", "|" + " --- |" * (len(models) + 1)]
+    scenarios = sorted({r["scenario"] for rows in all_rows.values() for r in rows})
+    for scenario in scenarios:
+        cells = []
+        for name in models:
+            mine = [r for r in all_rows[name] if r["scenario"] == scenario]
+            cells.append(f"{sum(r['correct'] for r in mine)}/{len(mine)}")
+        grid.append(f"| {scenario} | " + " | ".join(cells) + " |")
+    return "\n".join(summary), "\n".join(grid)
+
+
+# ---------- running ----------
+
+
+async def run_suite(provider_name: str, cases: list[Case], repeats: int) -> list[dict[str, Any]]:
+    settings = load_settings()
+    rows = []
+    for case in cases:
+        for _ in range(repeats):
+            provider = (
+                golden_provider(case)
+                if provider_name == "fake"
+                else get_provider(provider_name, settings)
+            )
+            result = await diagnose(
+                case.recording.namespace,
+                ReplayReader(case.recording),
+                provider,
+                settings,
+                source=f"eval:{case.scenario.name}",
+            )
+            rows.append(grade(case, result))
+    return rows
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument(
         "--provider", action="append", choices=["fake", "anthropic", "openai", "grok"]
     )
-    parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument("--repeats", type=int, default=1, help="runs per scenario per model")
+    parser.add_argument("--scenario", action="append", help="number or name; default: all")
     parser.add_argument("--gate", action="store_true", help="exit 1 if below evals/baseline.json")
-    parser.add_argument("--no-save", action="store_true")
+    parser.add_argument("--save", action="store_true", help="write results to --results-dir")
+    parser.add_argument("--results-dir", type=Path, default=EVAL_DIR / "results")
     args = parser.parse_args(argv)
 
-    cases = load_cases()
-    providers = args.provider or ["fake"]
-    summaries: dict[str, dict[str, Any]] = {}
+    try:
+        cases = load_cases(names=args.scenario)
+    except (FileNotFoundError, KeyError) as err:
+        print(f"triage-eval: {err.args[0] if err.args else err}", file=sys.stderr)
+        return 2
+
+    settings = load_settings()
     all_rows: dict[str, list[dict[str, Any]]] = {}
-    for name in providers:
-        rows = asyncio.run(run_suite(name, cases, args.repeats))
-        all_rows[name] = rows
-        summaries[name] = summarize(rows)
+    for name in args.provider or ["fake"]:
+        label = settings.model_for(name) or name
+        try:
+            all_rows[label] = asyncio.run(run_suite(name, cases, args.repeats))
+        except ModelAPIError as err:
+            print(f"triage-eval: the model API refused the request {err}", file=sys.stderr)
+            return 2
+        except ValueError as err:  # no model configured for that provider
+            print(f"triage-eval: {err}", file=sys.stderr)
+            return 2
 
-    table = markdown_table(summaries)
-    print(table)
+    summary, per_scenario = markdown_tables(all_rows)
+    print(summary + "\n\n" + per_scenario)
 
-    # The offline gate checks the pipeline; its fake-model numbers aren't results to keep.
-    if not args.no_save and not args.gate:
-        out = EVAL_DIR / "results"
-        out.mkdir(exist_ok=True)
+    if args.save:
+        out = args.results_dir
+        out.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        payload = {"summaries": summaries, "rows": all_rows, "repeats": args.repeats}
-        (out / f"{stamp}.json").write_text(json.dumps(payload, indent=2))
-        (out / "latest.md").write_text(table + "\n")
+        payload = {
+            "repeats": args.repeats,
+            "summaries": {name: summarize(rows) for name, rows in all_rows.items()},
+            "rows": all_rows,
+        }
+        (out / f"{stamp}-{'+'.join(all_rows)}.json").write_text(json.dumps(payload, indent=2))
+        (out / "latest.md").write_text(summary + "\n\n" + per_scenario + "\n")
 
     if args.gate:
         baseline = json.loads((EVAL_DIR / "baseline.json").read_text())
-        failures = [f"{n}: {f}" for n, s in summaries.items() for f in check_gate(s, baseline)]
+        failures = [
+            f"{name}: {f}"
+            for name, rows in all_rows.items()
+            for f in check_gate(summarize(rows), baseline)
+        ]
         if failures:
             print("\nEVAL GATE FAILED\n" + "\n".join(failures), file=sys.stderr)
             return 1

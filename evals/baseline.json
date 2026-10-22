@@ -1,6 +1,6 @@
 {
-  "_comment": "CI fails if any metric drops below these minimums. Raise them as the project improves; never lower them to make a build pass without writing down why.",
-  "answer_accuracy": 1.0,
-  "tool_accuracy": 1.0,
-  "answered_rate": 1.0
+  "_comment": "Minimums for the offline gate (golden model on the six recorded scenarios). CI fails if any summary metric drops below these. Raise them as the project improves; never lower them to make a build pass without writing down why (DECISIONS.md 036).",
+  "accuracy": 1.0,
+  "submitted_rate": 1.0,
+  "first_try_grounding": 1.0
 }

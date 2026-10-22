@@ -2,7 +2,7 @@
 
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 2 done (2026-10-21): `triage` diagnosed all six scenarios correctly with Claude Haiku, for about $0.002 a run (results below). Milestone 3 (evals, CI and README) in progress: evals will replay the recordings (DECISIONS 033) and compare Haiku with `grok-4.20-0309-non-reasoning` (DECISIONS 034); next is moving `triage-eval` onto the scenarios.
+**Status:** Milestone 2 done (2026-10-21): `triage` diagnosed all six scenarios correctly with Claude Haiku, for about $0.002 a run. Milestone 3 (evals, CI and README) in progress: `triage-eval` now grades the agent on the six recorded scenarios, with an offline golden-model gate in CI. Next: the real runs, Claude Haiku against `grok-4.20-0309-non-reasoning`, 3 per scenario.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -66,6 +66,18 @@ uv run triage --namespace triage-01-crashloop --alert "api pods keep restarting"
 
 It prints the category and affected object, the root cause, each evidence quote with the tool it came from, and the proposed fix as YAML, then one line with the run's tool calls, tokens, time and cost. Exit code 0 means a diagnosis was submitted, 1 that the agent didn't submit one, 2 a setup problem. Every run is also appended to `runs/runs.jsonl` with the namespace, prompt version and the full trace.
 
+## Evaluate
+
+`triage-eval` runs every scenario from its recording, grades each run against the scenario's `expected.yaml`, and prints a summary per model (accuracy, first-try evidence grounding, tool calls, latency, cost) and a scenario-by-model grid. The offline gate uses a scripted model and is what CI runs; the real runs call the models and cost money (about $0.04 for 18 Haiku runs, about $0.90 for 18 Grok runs).
+
+```bash
+uv run triage-eval --provider fake --gate
+uv run triage-eval --provider anthropic --repeats 3 --save
+uv run triage-eval --provider anthropic --provider grok --repeats 3 --save
+```
+
+`--save` writes every run and the summaries to `evals/results/` and the tables to `evals/results/latest.md`. Grok needs `XAI_API_KEY` and `XAI_MODEL` in `.env` (see `.env.example`).
+
 ## Progress
 
 Milestones 1–3 are the MVP. Each milestone ends in something that runs and is committed.
@@ -119,7 +131,7 @@ No misses. One run each is not a measurement; Milestone 3 runs each scenario 3 t
 
 ### Milestone 3: Evals, CI and README — ship and apply
 
-- [ ] `run_evals`: for each scenario and model, seed, triage 3 times, grade, reset
+- [x] `run_evals`: for each scenario and model, seed, triage 3 times, grade, reset (`triage-eval`, replaying the recordings instead of seeding each run: DECISIONS 033)
 - [ ] Accuracy, evidence grounding, p50/p95 latency, cost per incident and tool calls in a results table
 - [ ] Claude vs the comparison model; which wins on accuracy, cost and speed
 - [ ] One change made from the results, with before and after

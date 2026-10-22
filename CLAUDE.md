@@ -42,7 +42,8 @@ Design doc: see "cluster-triage-agent: Design & Milestones" (milestones M0–M4)
 - Type check: `uv run mypy`
 - Tests: `uv run pytest`
 - Offline eval gate (what CI runs): `uv run triage-eval --provider fake --gate`
-- Real evals (call model APIs, cost money; run only when asked): `uv run triage-eval --provider anthropic --repeats 3`
+- Real evals (call model APIs, cost money; run only when asked):
+  `uv run triage-eval --provider anthropic --provider grok --repeats 3 --save`
 - Local cluster: `kind create cluster --name triage` / `kind delete cluster --name triage`
 - Diagnose (calls the model, costs a little): `uv run triage --namespace <ns>` or
   `uv run triage --replay tests/fixtures/scenarios/NN-name/recording.json` (add `--json` for JSON)
@@ -53,8 +54,7 @@ Design doc: see "cluster-triage-agent: Design & Milestones" (milestones M0–M4)
   and saves `tests/fixtures/scenarios/NN-name/recording.json`)
 
 ## Layout
-Started from ai-project-template. The example MCP tools and eval cases are placeholders
-that M1 and M2 replace.
+Started from ai-project-template; its example MCP tools and eval cases were replaced in M1–M3.
 
 Now:
 - `README.md` overview and progress tracker; `ARCHITECTURE.md` design; `DECISIONS.md` decision log
@@ -63,9 +63,9 @@ Now:
   submission), MCP tool bridge, `submit.py` the `submit_diagnosis` tool, `grounding.py` checks quotes
   and fixes against the run, `prompt.py` the system prompt (bump `PROMPT_VERSION` when it changes)
 - `src/triage/mcp_server/` `kube_server.py` the read-only Kubernetes MCP server (`triage-mcp`), `kube.py`
-  the cluster reader, `trim.py` output trimming, `replay.py` record and replay; `server.py` is the
-  template's example server, still used by the eval gate until M3
-- `src/triage/evals/` eval runner; data in `evals/` (cases, baseline, results)
+  the cluster reader, `trim.py` output trimming, `replay.py` record and replay
+- `src/triage/evals/` `triage-eval`: replays the scenarios, grades against `expected.yaml`, golden-model
+  gate; `evals/baseline.json` gate minimums, `evals/results/` saved real runs
 - `src/triage/cli.py` the `triage` command (live namespace or `--replay`), `agent/report.py` its report
 - `src/triage/models.py` shared types: `Category`, `ResourceRef`, and `Diagnosis` (what the agent returns)
 - `src/triage/scenarios.py` the `triage-seed` command: seed, wait for, record and delete scenarios
@@ -75,8 +75,8 @@ Now:
 - `tests/` unit tests (offline); `tests/fixtures/kube/` hand-written API payloads,
   `tests/fixtures/scenarios/` recorded per scenario and replayed by `mcp_server/replay.py`
 
-Coming in M2–M3:
-- `src/triage/evals/` the eval gate on the six scenarios (replayed) instead of the calculator cases
+Coming in M3:
+- results table and README for a stranger; manual CI workflow with an optional kind job
 
 ## Conventions
 - Python 3.12, type hints everywhere, Pydantic for anything crossing a boundary.

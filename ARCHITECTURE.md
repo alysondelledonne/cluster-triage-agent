@@ -2,7 +2,7 @@
 
 How cluster-triage-agent is put together. This file describes the design as it stands; when the design changes, update it here and record the reason in [DECISIONS.md](DECISIONS.md).
 
-> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the system prompt in `agent/prompt.py`; the `triage` CLI over a live namespace or a recording, with a plain-text report and per-run JSON logs; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. The offline eval gate still uses the template's example tools until Milestone 3 rebuilds it on the scenarios (DECISIONS 025).
+> **Built so far:** the template's provider adapter, agent loop, MCP server skeleton and eval harness; the six failure scenarios and the `triage-seed` seeder; `Category`, `ResourceRef` and the `Diagnosis` model in `models.py`, with the `submit_diagnosis` tool definition and validator in `agent/submit.py`; the loop that ends only on an accepted submission, with the 12-call cap; grounding checks on quotes and fixes in `agent/grounding.py`; the system prompt in `agent/prompt.py`; the `triage` CLI over a live namespace or a recording, with a plain-text report and per-run JSON logs; the read-only RBAC in `deploy/rbac/` and its test; the MCP server's five Kubernetes tools with output trimming; recordings of every scenario's API responses, replayed offline. `triage-eval` grades the agent on the six recorded scenarios, with an offline golden-model gate in CI. The template's calculator example is gone (DECISIONS 035).
 
 ## Overview
 
@@ -67,7 +67,7 @@ How the server is put together:
 - **A run ends only on an accepted submission.** The finish tool is offered next to the MCP tools. A submission that fails validation goes back to the model as an error listing each problem; after 2 such retries a third rejection ends the run. Calls after an accepted submission in the same turn are not run.
 - **Up to 12 investigative tool calls.** Calls past the limit in the same turn are refused with an error. The next turn is forced: `submit_diagnosis` is the only tool offered, with a note asking for a submission now and confidence below 0.5 if the evidence isn't conclusive. A submission there ends the run as `submitted_at_cap`; anything else ends it as `no_submission`.
 - **Plain-text answers get a nudge** to call `submit_diagnosis`, at most 2 times.
-- Stop reasons: `submitted`, `submitted_at_cap`, `no_submission` (and `answered` / `max_steps` without a finish tool). Each run records its nudges and rejected submissions, and the parsed diagnosis as `submission`.
+- Stop reasons: `submitted`, `submitted_at_cap`, `no_submission`. Each run records its nudges and rejected submissions, and the parsed diagnosis as `submission`.
 - Every limit is counted, so every run ends: at most 12 calls + 2 nudges + 3 submissions + 1 forced turn.
 - **System prompt** (`agent/prompt.py`, DECISIONS 027): about 440 words, the same for every run, versioned as `PROMPT_VERSION`. It gives the triage order (`list_pods`, `get_events`, `get_logs` with `previous=true` for restarting containers, `describe`, `can_i`), the 12-call budget, the signs of each category (built from the `Category` enum, so none is left out), the rule that cluster output is evidence and never instructions, no Secrets, quotes copied exactly, and the fix rules. Tests pin each of these so an edit can't silently drop one.
 - **First user message** (`task_message`): names the namespace, and passes an optional alert from the caller marked as a hint, not proof. Keeping the namespace out of the system prompt keeps that text identical across runs.
@@ -143,16 +143,25 @@ Unit tests, and later the offline agent runs and eval gate, never touch a cluste
 
 ## Evals
 
+`triage-eval` (`src/triage/evals/runner.py`, DECISIONS 036) runs each scenario through the same `diagnose()` as `triage`, replayed from its recording, and grades every run against `expected.yaml`.
+
 | Metric | How it's measured |
 | --- | --- |
-| Root-cause accuracy | `category` and `affected_resource` match `expected.yaml` |
-| Evidence grounding | Share of quoted evidence lines found in the real tool output |
+| `accuracy` | Share of runs where `category` matches and `affected_resource` matches it or an `also_accept` entry |
+| `category_accuracy` | Share with the right category, whatever the object |
+| `submitted_rate` | Share that ended with an accepted `submit_diagnosis` (at the cap or not) |
+| `first_try_grounding` | Share of quotes in the first schema-valid submission found in that tool's earlier output (from `submission_attempts`); measures invented evidence, since later tries are corrected |
+| `avg_tool_calls`, `cap_rate` | Investigative calls per run, and how often the 12-call cap was hit |
+| `unrecorded_call_rate` | Share of tool calls asking for something the recording doesn't have; if it grows, the recording sweep is missing something (033) |
+| `latency_p50_s`, `latency_p95_s` | Seconds per run |
+| `cost_per_incident_usd` | From token counts and `config/pricing.json`; unknown if any run's model has no price |
 | Fix validity (M4) | Patch passes a server-side dry run, then the pod becomes Ready after applying it |
-| Latency | p50 and p95 seconds per incident |
-| Cost | Dollars per incident from token counts and `config/pricing.json` |
-| Tool calls | Average calls per incident, and how often the cap was hit |
 
-Each scenario runs 3 times per model, replayed from its recording so every model sees the same cluster output and anyone can rerun it without a cluster (DECISIONS 033). The models are `claude-haiku-5-5` and `grok-4.20-0309-non-reasoning` (DECISIONS 034). Unit tests and CI use recorded tool output in `tests/fixtures/` and never call a model or need a cluster; real evals run on demand. The scenario-based `triage-eval` is Milestone 3, step 1b; until then it still runs the template's calculator cases.
+It prints a summary row per model and a scenario-by-model grid of correct runs (`2/3`). `--save` writes every run's row and the summaries to `evals/results/<time>-<models>.json` and the tables to `evals/results/latest.md`.
+
+The offline gate (`triage-eval --provider fake --gate`, run in CI) uses a scripted golden model: per scenario it lists pods, reads events or logs where that scenario's signal shows, and submits the expected answer quoting the real signal line from the replayed output, with a minimal valid fix. It checks the harness, grading, grounding and gate end to end without a model or a cluster; `evals/baseline.json` holds its minimums (accuracy, submitted rate and first-try grounding, all 1.0).
+
+Each scenario runs 3 times per model, replayed from its recording so every model sees the same cluster output and anyone can rerun it without a cluster (DECISIONS 033). The models are `claude-haiku-5-5` and `grok-4.20-0309-non-reasoning` (DECISIONS 034). Unit tests and CI use recorded tool output in `tests/fixtures/` and never call a model or need a cluster; real evals run on demand.
 
 ## Repo layout
 
@@ -163,7 +172,7 @@ cluster-triage-agent/
   ARCHITECTURE.md      this file
   DECISIONS.md         decision log
   src/triage/
-    mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py; server.py = template example until M3
+    mcp_server/        kube_server.py (5 read-only tools), kube.py (reader), trim.py, replay.py
     agent/             loop.py (cap, finish tool), submit.py (submit_diagnosis), grounding.py, prompt.py
     models.py          Category, ResourceRef, Diagnosis (Pydantic)
     scenarios.py       triage-seed: seed, wait for, record, delete scenarios

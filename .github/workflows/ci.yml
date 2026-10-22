@@ -21,4 +21,4 @@ jobs:
       - name: Tests
         run: uv run pytest
       - name: Eval gate (offline, golden fake model)
-        run: uv run triage-eval --provider fake --gate --no-save
+        run: uv run triage-eval --provider fake --gate

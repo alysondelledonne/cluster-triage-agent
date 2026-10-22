@@ -1,8 +1,0 @@
-{"id": "calc-01", "input": "What is 17 * 23?", "expected_answer": "391", "expected_tool": "calculator", "expected_args": {"expression": "17 * 23"}}
-{"id": "calc-02", "input": "What is (125 + 75) / 8?", "expected_answer": "25", "expected_tool": "calculator", "expected_args": {"expression": "(125 + 75) / 8"}}
-{"id": "calc-03", "input": "What is 2 to the power of 16?", "expected_answer": "65536", "expected_tool": "calculator", "expected_args": {"expression": "2 ** 16"}}
-{"id": "calc-04", "input": "If a 3-month engagement bills 480 hours at 185 dollars an hour, what is the total in dollars?", "expected_answer": "88800", "expected_tool": "calculator", "expected_args": {"expression": "480 * 185"}}
-{"id": "calc-05", "input": "What is 1000 minus 37 percent of 1000?", "expected_answer": "630", "expected_tool": "calculator", "expected_args": {"expression": "1000 - 0.37 * 1000"}}
-{"id": "words-01", "input": "How many words are in this sentence: 'the quick brown fox jumps over the lazy dog'?", "expected_answer": "9", "expected_tool": "word_count", "expected_args": {"text": "the quick brown fox jumps over the lazy dog"}}
-{"id": "words-02", "input": "Count the words in: 'Kubernetes schedules pods onto nodes'", "expected_answer": "5", "expected_tool": "word_count", "expected_args": {"text": "Kubernetes schedules pods onto nodes"}}
-{"id": "words-03", "input": "How many words: 'to be or not to be'", "expected_answer": "6", "expected_tool": "word_count", "expected_args": {"text": "to be or not to be"}}

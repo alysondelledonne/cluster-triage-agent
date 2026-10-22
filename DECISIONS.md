@@ -4,6 +4,8 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 036 | 2026-10-21 | `triage-eval` grades replayed scenarios against `expected.yaml`; new gate metrics replace the template's | Accepted |
+| 035 | 2026-10-21 | Remove the template's calculator example and the loop's plain-text mode | Accepted |
 | 034 | 2026-10-21 | Compare Claude Haiku with `grok-4.20-0309-non-reasoning` | Accepted |
 | 033 | 2026-10-21 | Evals replay the recorded scenarios; live runs are an optional check | Accepted |
 | 032 | 2026-10-21 | Scenario 1 waits for the BackOff event, not the CrashLoopBackOff container state | Accepted |
@@ -44,6 +46,14 @@ A running log of design and project decisions: what was decided, why, and what i
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 036 — `triage-eval` grades replayed scenarios against `expected.yaml`; new gate metrics replace the template's
+**Why:** The evals should measure what matters for a diagnosis: the right category and object (with `also_accept` counting), whether the run ended in an accepted submission, and whether the first submission's evidence was real (first-try grounding, from the trace, since rejected quotes are corrected before a person sees them). Tool calls, cap hits, latency and cost show what it took; the share of calls the recording couldn't answer shows whether replay still stands in for the cluster (033). Runs go through the same `diagnose()` as `triage`, so the evals test the real path. The offline gate needs a model that gets every scenario right for free, so a scripted golden model follows each scenario's signal and quotes the real line it finds.
+**Consequence:** `evals/baseline.json` now holds `accuracy`, `submitted_rate` and `first_try_grounding` (all 1.0 for the golden model). That replaces the calculator's `answer_accuracy`, `tool_accuracy` and `answered_rate`: a change of metrics, not a lowering. Results are saved only with `--save`; the manual workflow passes it. The gate checks minimums only, so `unrecorded_call_rate` is reported but not gated.
+
+### 035 — Remove the template's calculator example and the loop's plain-text mode
+**Why:** 025 kept them only so CI had an eval gate until the scenarios replaced it, which 036 does in the same commit. Nothing else used them.
+**Consequence:** Supersedes 025. Gone: `mcp_server/server.py`, `evals/cases.jsonl`, their tests, `run_agent`'s plain-text mode and its `max_steps` (every run now needs a finish tool), and the `MAX_STEPS` setting. The loop's basic tests now use a tiny finish tool of their own.
 
 ### 034 — Compare Claude Haiku with `grok-4.20-0309-non-reasoning`
 **Why:** Settles the open question from 012. Grok was the portfolio plan's original choice, and xAI's API is OpenAI-compatible, so the existing provider works unchanged. Of xAI's models, `grok-4.20-0309-non-reasoning` ($1.25 in / $2.50 out per million tokens under 200K) is the closest match to Haiku's fast, cheap tier; `grok-4.7` costs $2 / $6. One replay of scenario 6 on 2026-10-21 got it right (RBACDenied, ServiceAccount/reporter, 0.90) in 11 tool calls and 15.9s for about $0.049, against Haiku's 5 calls, 6.8s and $0.0027.
