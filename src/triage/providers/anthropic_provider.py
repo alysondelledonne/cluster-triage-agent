@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from .base import Message, ModelTurn, ToolCall, ToolSpec
+from .base import Message, ModelTurn, ToolCall, ToolSpec, check_required
 
 
 class AnthropicProvider:
@@ -72,7 +72,14 @@ class AnthropicProvider:
             for t in tools
         ]
 
-    def complete(self, system: str, messages: list[Message], tools: list[ToolSpec]) -> ModelTurn:
+    def complete(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+        require: str | None = None,
+    ) -> ModelTurn:
+        check_required(require, tools)
         kwargs: dict[str, Any] = {
             "model": self.model,
             "max_tokens": self.max_tokens,
@@ -81,6 +88,8 @@ class AnthropicProvider:
         }
         if tools:
             kwargs["tools"] = self.to_api_tools(tools)
+        if require:
+            kwargs["tool_choice"] = {"type": "tool", "name": require}
         start = time.perf_counter()
         resp = self.client.messages.create(**kwargs)
         latency = time.perf_counter() - start

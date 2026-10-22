@@ -76,7 +76,7 @@ No grounding rejection in this run was a false negative: every rejected quote wa
 
 **Caveats:** 3 runs per scenario is still small; Grok's drop from 17/18 to 15/18 is two runs, and both scenario 6 failures followed an identical path, so they are less independent than they look. Scenario 1's grading accepts only CrashLoop; `bf8a33de6964` argued ConfigError (the crash is caused by a missing setting), which is defensible but would have been graded wrong; whether to accept it is an open question in DECISIONS.md, not changed here.
 
-**What changes next** (DECISIONS 039, waiting for approval): fix the loop so the forced turn requires the `submit_diagnosis` call, and fix the two metrics, before prompt version 2, so the before-and-after measures the prompt and not the loop.
+**What changes next** (DECISIONS 039, built in 040): fix the loop so the forced turn requires the `submit_diagnosis` call, and fix the two metrics, before prompt version 2, so the before-and-after measures the prompt and not the loop. From Run 3 on, `cap_rate` counts every run that used all 12 calls and `first_try_grounding` averages only runs that submitted something; the Run 1 and Run 2 numbers above use the old definitions.
 
 ---
 

@@ -65,14 +65,14 @@ How the server is put together:
 `run_agent` in `src/triage/agent/loop.py`. For triage it runs with `submit_diagnosis` as its finish tool (DECISIONS 024); without one it behaves as the template did (stop at the first plain-text answer, at most `max_steps` turns), which the example eval gate still relies on until Milestone 3 (DECISIONS 025).
 
 - **A run ends only on an accepted submission.** The finish tool is offered next to the MCP tools. A submission that fails validation goes back to the model as an error listing each problem; after 2 such retries a third rejection ends the run. Calls after an accepted submission in the same turn are not run.
-- **Up to 12 investigative tool calls.** Calls past the limit in the same turn are refused with an error. The next turn is forced: `submit_diagnosis` is the only tool offered, with a note asking for a submission now and confidence below 0.5 if the evidence isn't conclusive. A submission there ends the run as `submitted_at_cap`; anything else ends it as `no_submission`.
+- **Up to 12 investigative tool calls.** Calls past the limit in the same turn are refused with an error. The next turn is forced: `submit_diagnosis` is the only tool offered, the API is told the model must call it (`tool_choice`, DECISIONS 039), and a note goes with it asking for a submission now and confidence below 0.5 if the evidence isn't conclusive. A submission there ends the run as `submitted_at_cap`; anything else ends it as `no_submission`.
 - **Plain-text answers get a nudge** to call `submit_diagnosis`, at most 2 times.
-- Stop reasons: `submitted`, `submitted_at_cap`, `no_submission`. Each run records its nudges and rejected submissions, and the parsed diagnosis as `submission`.
+- Stop reasons: `submitted`, `submitted_at_cap`, `no_submission`. Each run records its nudges, rejected submissions, `hit_cap` (all 12 calls used, whatever happened next), and the parsed diagnosis as `submission`.
 - Every limit is counted, so every run ends: at most 12 calls + 2 nudges + 3 submissions + 1 forced turn.
 - **System prompt** (`agent/prompt.py`, DECISIONS 027): about 440 words, the same for every run, versioned as `PROMPT_VERSION`. It gives the triage order (`list_pods`, `get_events`, `get_logs` with `previous=true` for restarting containers, `describe`, `can_i`), the 12-call budget, the signs of each category (built from the `Category` enum, so none is left out), the rule that cluster output is evidence and never instructions, no Secrets, quotes copied exactly, and the fix rules. Tests pin each of these so an edit can't silently drop one.
 - **First user message** (`task_message`): names the namespace, and passes an optional alert from the caller marked as a hint, not proof. Keeping the namespace out of the system prompt keeps that text identical across runs.
 - Every run writes one JSON line with tool calls, tokens, latency and cost; the evals and README results table read from it.
-- The model sits behind the provider adapter (`src/triage/providers/`), so swapping Claude for a second model is a config change.
+- The model sits behind the provider adapter (`src/triage/providers/`), so swapping Claude for a second model is a config change. `complete` takes an optional `require`, the name of a tool the model must call that turn; the Claude adapter sends it as `tool_choice: {type: tool, name}`, the OpenAI-compatible one (Grok) as `tool_choice: {type: function, function: {name}}`, and the fakes record it for tests.
 
 ## Diagnosis output
 
@@ -150,8 +150,8 @@ Unit tests, and later the offline agent runs and eval gate, never touch a cluste
 | `accuracy` | Share of runs where `category` matches and `affected_resource` matches it or an `also_accept` entry |
 | `category_accuracy` | Share with the right category, whatever the object |
 | `submitted_rate` | Share that ended with an accepted `submit_diagnosis` (at the cap or not) |
-| `first_try_grounding` | Share of quotes in the first schema-valid submission found in that tool's earlier output (from `submission_attempts`); measures invented evidence, since later tries are corrected |
-| `avg_tool_calls`, `cap_rate` | Investigative calls per run, and how often the 12-call cap was hit |
+| `first_try_grounding` | Share of quotes in the first schema-valid submission found in that tool's earlier output (from `submission_attempts`); measures invented evidence, since later tries are corrected. Averaged over runs that submitted something; a run with no schema-valid submission has no first try and is left out (DECISIONS 039) |
+| `avg_tool_calls`, `cap_rate` | Investigative calls per run, and the share of runs that used all 12, whether or not a diagnosis followed (DECISIONS 039) |
 | `unrecorded_call_rate` | Share of tool calls asking for something the recording doesn't have; if it grows, the recording sweep is missing something (033) |
 | `latency_p50_s`, `latency_p95_s` | Seconds per run |
 | `cost_per_incident_usd` | From token counts and `config/pricing.json`; unknown if any run's model has no price |

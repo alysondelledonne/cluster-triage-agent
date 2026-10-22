@@ -6,7 +6,7 @@ import json
 import time
 from typing import Any
 
-from .base import Message, ModelTurn, ToolCall, ToolSpec
+from .base import Message, ModelTurn, ToolCall, ToolSpec, check_required
 
 
 class OpenAICompatProvider:
@@ -70,7 +70,14 @@ class OpenAICompatProvider:
             for t in tools
         ]
 
-    def complete(self, system: str, messages: list[Message], tools: list[ToolSpec]) -> ModelTurn:
+    def complete(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+        require: str | None = None,
+    ) -> ModelTurn:
+        check_required(require, tools)
         kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": self.to_api_messages(system, messages),
@@ -78,6 +85,8 @@ class OpenAICompatProvider:
         }
         if tools:
             kwargs["tools"] = self.to_api_tools(tools)
+        if require:
+            kwargs["tool_choice"] = {"type": "function", "function": {"name": require}}
         start = time.perf_counter()
         resp = self.client.chat.completions.create(**kwargs)
         latency = time.perf_counter() - start

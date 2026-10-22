@@ -71,6 +71,8 @@ def test_investigate_then_submit(tmp_path: Path) -> None:
     assert result.stopped == "submitted"
     assert isinstance(result.submission, Diagnosis)
     assert result.submission.category is Category.CRASH_LOOP
+    assert not result.hit_cap
+    assert provider.required == [None, None]
     assert [t.name for t in result.tool_calls] == ["list_pods", SUBMIT_DIAGNOSIS]
     assert result.tool_calls[-1].result == "accepted"
     assert provider.tools_offered[0] == ["list_pods", SUBMIT_DIAGNOSIS]
@@ -149,6 +151,9 @@ def test_at_the_cap_only_submit_is_offered_and_it_counts_as_at_cap() -> None:
     assert provider.tools_offered[4] == [SUBMIT_DIAGNOSIS]
     forced = last_user_message(provider, 4)
     assert "4 tool calls" in forced and "confidence below 0.5" in forced
+    # Only the forced turn makes the API require the call (DECISIONS.md 039).
+    assert provider.required == [None, None, None, None, SUBMIT_DIAGNOSIS]
+    assert result.hit_cap
 
 
 def test_calls_past_the_cap_in_one_turn_are_refused() -> None:
@@ -167,6 +172,7 @@ def test_no_submission_on_the_forced_turn_ends_the_run() -> None:
     assert result.stopped == "no_submission"
     assert result.submission is None
     assert result.steps == 3
+    assert result.hit_cap, "reaching the cap counts whether or not a diagnosis followed"
 
 
 def test_default_cap_is_twelve_tool_calls() -> None:

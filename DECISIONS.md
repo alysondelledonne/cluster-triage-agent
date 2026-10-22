@@ -4,7 +4,8 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
-| 039 | 2026-10-22 | Run 2 (the "before"): Haiku 18/18, Grok 15/18; require the call on the forced turn and fix two metrics before prompt version 2 | Proposed |
+| 040 | 2026-10-22 | Build 039: the forced turn requires `submit_diagnosis`; `cap_rate` and `first_try_grounding` fixed; rerun the "before" as Run 3 | Accepted |
+| 039 | 2026-10-22 | Run 2 (the "before"): Haiku 18/18, Grok 15/18; require the call on the forced turn and fix two metrics before prompt version 2 | Proposed, accepted in 040 |
 | 038 | 2026-10-21 | Fix the two measurement flaws from Run 1: unescape `\n` in grounding; recordings hold the full namespace inventory | Accepted |
 | 037 | 2026-10-21 | First real eval: Haiku 18/18, Grok 17/18; fix two measurement flaws, then prompt version 2 as the one change | Accepted |
 | 036 | 2026-10-21 | `triage-eval` grades replayed scenarios against `expected.yaml`; new gate metrics replace the template's | Accepted |
@@ -46,11 +47,14 @@ A running log of design and project decisions: what was decided, why, and what i
 
 ## Open questions
 
-- **Rerun the "before" after 039's fixes, or not.** A Run 3 with the loop and metric fixes and prompt version 1 would keep the prompt version 2 comparison to one change (about $0.55). Skipping it saves the cost, but then the loop fix and the prompt change land in the same before-and-after, and their effects can only be told apart from the traces (forced-turn failures against quote rejections).
 - **Should scenario 1 accept ConfigError?** Its container exits because a required setting is missing, so ConfigError is a defensible reading; the scenario was written as CrashLoop (`expected.yaml`). Changing it would change the grading of past runs, so decide before M3's final results table.
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 040 — Build 039: the forced turn requires `submit_diagnosis`; `cap_rate` and `first_try_grounding` fixed; rerun the "before" as Run 3
+**Why:** Approved on 2026-10-22. Settles 039's open question in favour of a Run 3: Milestone 3 asks for one change with a before and after, and with these fixes in place a rerun on prompt version 1 means the prompt version 2 comparison changes only the prompt. The alternative, one run for both, saves about $0.55 but leaves the loop fix and the prompt change to be told apart from traces.
+**Consequence:** `Provider.complete` takes `require`, a tool the model must call that turn; the Claude adapter sends `tool_choice: {type: tool, name}` and the OpenAI-compatible adapter `tool_choice: {type: function, function: {name}}` (xAI documents the same form). Requiring a tool that isn't offered raises before any API call. The loop requires `submit_diagnosis` on the forced turn only; elsewhere the model still chooses freely, so nudges keep their meaning. `AgentResult.hit_cap` records that all investigative calls were used, and the evals' `at_cap` comes from it rather than from the stop reason. A run with no schema-valid submission gets `first_try_grounding: None` and is left out of the average, which is None if no run submitted (the gate treats None as a fail). Runs 1 and 2 keep the numbers they were saved with; in their saved rows a no-submission run shows 0.0. Whether Grok, required to call the tool, submits a sensible diagnosis or a forced placeholder is something Run 3 will show; the grounding and schema checks apply to it as to any submission.
 
 ### 039 — Run 2 (the "before"): Haiku 18/18, Grok 15/18; require the call on the forced turn and fix two metrics before prompt version 2
 **Why:** Run 2 (evals/RESULTS.md: commit `a61b8de`, prompt version 1, recordings with the full inventory from 038, $0.55) confirmed the measurement fixes: no unrecorded calls for either model, no quote rejected for escaping, and Haiku unchanged (18/18, first-try grounding 1.00, $0.0023 an incident). Grok fell to 15/18, and its traces showed problems that would distort the prompt version 2 comparison if left in place:

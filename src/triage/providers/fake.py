@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from .base import Message, ModelTurn, ToolCall, ToolSpec
+from .base import Message, ModelTurn, ToolCall, ToolSpec, check_required
 
 
 class ScriptedProvider:
@@ -17,10 +17,19 @@ class ScriptedProvider:
         self.model = model
         self.calls: list[list[Message]] = []
         self.tools_offered: list[list[str]] = []  # tool names offered on each call
+        self.required: list[str | None] = []  # the tool the model had to call, per call
 
-    def complete(self, system: str, messages: list[Message], tools: list[ToolSpec]) -> ModelTurn:
+    def complete(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+        require: str | None = None,
+    ) -> ModelTurn:
+        check_required(require, tools)
         self.calls.append(list(messages))
         self.tools_offered.append([t.name for t in tools])
+        self.required.append(require)
         if not self.turns:
             raise RuntimeError("ScriptedProvider ran out of turns")
         return self.turns.pop(0)
@@ -40,7 +49,14 @@ class PolicyProvider:
         self.policy = policy
         self.model = model
 
-    def complete(self, system: str, messages: list[Message], tools: list[ToolSpec]) -> ModelTurn:
+    def complete(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+        require: str | None = None,
+    ) -> ModelTurn:
+        check_required(require, tools)
         return self.policy(messages)
 
 

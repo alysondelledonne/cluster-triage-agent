@@ -53,5 +53,18 @@ class Provider(Protocol):
     model: str
 
     def complete(
-        self, system: str, messages: list[Message], tools: list[ToolSpec]
-    ) -> ModelTurn: ...
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+        require: str | None = None,
+    ) -> ModelTurn:
+        """One model turn. `require` names a tool from `tools` that the model must call
+        this turn; each adapter maps it to its API's `tool_choice` (DECISIONS.md 039)."""
+        ...
+
+
+def check_required(require: str | None, tools: list[ToolSpec]) -> None:
+    """Requiring a tool that isn't offered is a bug in the caller; fail before the API call."""
+    if require is not None and require not in {t.name for t in tools}:
+        raise ValueError(f"required tool {require!r} is not offered this turn")

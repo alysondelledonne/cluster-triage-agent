@@ -165,8 +165,10 @@ def grade(case: Case, result: AgentResult) -> dict[str, Any]:
         "got": f"{d.category.value} {d.affected_resource}" if d is not None else "no diagnosis",
         "confidence": d.confidence if d is not None else None,
         "submitted": result.stopped in ("submitted", "submitted_at_cap"),
-        "at_cap": result.stopped == "submitted_at_cap",
-        "first_try_grounding": attempts[0].grounded_share if attempts else 0.0,
+        # Reached the cap, whether or not a diagnosis followed (DECISIONS.md 039).
+        "at_cap": result.hit_cap,
+        # None when nothing schema-valid was submitted: no first try to score (039).
+        "first_try_grounding": attempts[0].grounded_share if attempts else None,
         "rejected_submissions": result.rejected_submissions,
         "nudges": result.nudges,
         "tool_calls": len(looks),
@@ -185,6 +187,12 @@ def _pct(values: list[float], q: float) -> float:
     return s[min(len(s) - 1, round(q * (len(s) - 1)))]
 
 
+def _mean_or_none(values: list[float | None]) -> float | None:
+    """Mean of the values that exist; None if there are none (the gate treats None as a fail)."""
+    present = [v for v in values if v is not None]
+    return round(statistics.mean(present), 3) if present else None
+
+
 def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     n = len(rows)
     costs = [r["cost_usd"] for r in rows]
@@ -196,7 +204,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "accuracy": round(sum(r["correct"] for r in rows) / n, 3),
         "category_accuracy": round(sum(r["category_ok"] for r in rows) / n, 3),
         "submitted_rate": round(sum(r["submitted"] for r in rows) / n, 3),
-        "first_try_grounding": round(statistics.mean(r["first_try_grounding"] for r in rows), 3),
+        "first_try_grounding": _mean_or_none([r["first_try_grounding"] for r in rows]),
         "avg_tool_calls": round(calls / n, 2),
         "cap_rate": round(sum(r["at_cap"] for r in rows) / n, 3),
         "unrecorded_call_rate": round(sum(r["unrecorded_calls"] for r in rows) / max(1, calls), 3),

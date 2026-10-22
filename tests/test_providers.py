@@ -4,6 +4,7 @@ Uses the SDKs' own response types with a stub client, so no API calls."""
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from anthropic.types import Message as AnthropicMessage
 from openai.types.chat import ChatCompletion
 
@@ -73,6 +74,28 @@ def test_anthropic_round_trip() -> None:
     assert turn.text == "Calling."
     assert turn.tool_calls == [ToolCall("t2", "calculator", {"expression": "3*3"})]
     assert (turn.input_tokens, turn.output_tokens) == (12, 7)
+    assert "tool_choice" not in rec.kwargs, "the model chooses freely unless a tool is required"
+
+
+def test_anthropic_can_require_a_tool() -> None:
+    # The loop's forced last turn (DECISIONS.md 039): the API must make the model call it.
+    rec = Recorder(AnthropicMessage.model_validate(_anthropic_tool_use()))
+    p = AnthropicProvider("claude-test", client=SimpleNamespace(messages=rec))
+    p.complete("sys", [Message(role="user", content="q")], [TOOL], require="calculator")
+    assert rec.kwargs["tool_choice"] == {"type": "tool", "name": "calculator"}
+
+
+def _anthropic_tool_use() -> dict[str, Any]:
+    return {
+        "id": "msg_2",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-test",
+        "content": [{"type": "tool_use", "id": "t3", "name": "calculator", "input": {}}],
+        "stop_reason": "tool_use",
+        "stop_sequence": None,
+        "usage": {"input_tokens": 1, "output_tokens": 1},
+    }
 
 
 def test_anthropic_merges_consecutive_tool_results() -> None:
@@ -133,6 +156,25 @@ def test_openai_round_trip() -> None:
     assert rec.kwargs["max_completion_tokens"] == 1024
     assert turn.tool_calls == [ToolCall("t9", "calculator", {"expression": "5*5"})]
     assert (turn.input_tokens, turn.output_tokens) == (20, 4)
+    assert "tool_choice" not in rec.kwargs
+
+
+def test_openai_compatible_can_require_a_tool() -> None:
+    # Grok goes through this adapter; its forced last turn names the function to call.
+    rec = Recorder(_chat_completion("{}"))
+    p = GrokProvider("grok-test", client=SimpleNamespace(chat=SimpleNamespace(completions=rec)))
+    p.complete("sys", [Message(role="user", content="q")], [TOOL], require="calculator")
+    assert rec.kwargs["tool_choice"] == {"type": "function", "function": {"name": "calculator"}}
+
+
+def test_requiring_a_tool_that_isnt_offered_is_a_bug() -> None:
+    rec = Recorder(_chat_completion("{}"))
+    p = GrokProvider("grok-test", client=SimpleNamespace(chat=SimpleNamespace(completions=rec)))
+    with pytest.raises(ValueError, match="not offered"):
+        p.complete("sys", [Message(role="user", content="q")], [TOOL], require="other")
+    anth = AnthropicProvider("claude-test", client=SimpleNamespace(messages=rec))
+    with pytest.raises(ValueError, match="not offered"):
+        anth.complete("sys", [Message(role="user", content="q")], [TOOL], require="other")
 
 
 def test_openai_bad_tool_json_is_kept_not_crashed() -> None:

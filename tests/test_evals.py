@@ -40,6 +40,7 @@ def result(
     stopped: str = "submitted",
     tools: list[ToolRecord] | None = None,
     cost: float | None = 0.002,
+    hit_cap: bool = False,
 ) -> AgentResult:
     return AgentResult(
         run_id="r1",
@@ -54,6 +55,7 @@ def result(
         total_latency_s=2.0,
         cost_usd=cost,
         submission=Diagnosis.model_validate(submission) if submission else None,
+        hit_cap=hit_cap,
     )
 
 
@@ -113,7 +115,8 @@ def test_no_submission_is_wrong_and_counted() -> None:
     row = grade(case("crashloop"), result(None, stopped="no_submission"))
     assert not row["correct"] and not row["submitted"]
     assert row["got"] == "no diagnosis"
-    assert row["first_try_grounding"] == 0.0
+    # Nothing was submitted, so there is no first try to score (DECISIONS.md 039).
+    assert row["first_try_grounding"] is None
 
 
 def test_cap_tool_calls_and_unrecorded_calls_are_counted() -> None:
@@ -127,7 +130,10 @@ def test_cap_tool_calls_and_unrecorded_calls_are_counted() -> None:
     row = grade(
         case("crashloop"),
         result(
-            diagnosis("CrashLoop", "Deployment", "api"), stopped="submitted_at_cap", tools=tools
+            diagnosis("CrashLoop", "Deployment", "api"),
+            stopped="submitted_at_cap",
+            tools=tools,
+            hit_cap=True,
         ),
     )
     assert row["submitted"] and row["at_cap"]
@@ -147,6 +153,15 @@ def test_first_try_grounding_comes_from_the_trace() -> None:
     assert grade(case("crashloop"), result(sub, tools=tools))["first_try_grounding"] == 0.0
 
 
+def test_at_cap_counts_runs_that_hit_the_cap_without_submitting() -> None:
+    # Run 2's two scenario 6 misses hit the cap and never submitted; cap_rate read 0.0.
+    row = grade(case("rbac-denied"), result(None, stopped="no_submission", hit_cap=True))
+    assert row["at_cap"] and not row["submitted"]
+    assert not grade(case("crashloop"), result(diagnosis("CrashLoop", "Deployment", "api")))[
+        "at_cap"
+    ]
+
+
 # ---------- summaries and the gate ----------
 
 
@@ -163,6 +178,24 @@ def test_summary_metrics() -> None:
     assert s["submitted_rate"] == 0.5
     assert s["cost_per_incident_usd"] == pytest.approx(0.003)
     assert s["latency_p50_s"] == 2.0
+
+
+def test_first_try_grounding_averages_only_runs_that_submitted() -> None:
+    sub = diagnosis("CrashLoop", "Deployment", "api")
+    tools = [
+        ToolRecord("list_pods", {}, "phase: Running", False, 0.0),
+        ToolRecord("submit_diagnosis", sub, "accepted", False, 0.0),
+    ]
+    grounded = grade(case("crashloop"), result(sub, tools=tools))
+    never_submitted = grade(case("crashloop"), result(None, stopped="no_submission"))
+    assert summarize([grounded, never_submitted])["first_try_grounding"] == 1.0
+    assert summarize([never_submitted])["first_try_grounding"] is None
+
+
+def test_cap_rate_counts_every_run_that_hit_the_cap() -> None:
+    r = rows()
+    r[1]["at_cap"] = True
+    assert summarize(r)["cap_rate"] == 0.5
 
 
 def test_unknown_cost_makes_the_summary_cost_unknown() -> None:

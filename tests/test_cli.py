@@ -256,7 +256,7 @@ class RefusingProvider:
     def __init__(self, error: Exception) -> None:
         self.error = error
 
-    def complete(self, system: str, messages: Any, tools: Any) -> Any:
+    def complete(self, system: str, messages: Any, tools: Any, require: Any = None) -> Any:
         raise self.error
 
 

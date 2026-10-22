@@ -6,7 +6,8 @@ back. Every run returns its full trace plus token, latency and cost totals.
 A run only ends on a submission the finish tool accepts (DECISIONS.md 024; for
 triage that is `submit_diagnosis`). The model gets at most `max_tool_calls`
 investigative calls; after that it gets one forced turn where the finish tool is
-the only tool offered (DECISIONS.md 005). A plain-text answer gets a nudge, and a
+the only tool offered, and the API is told the model must call it (DECISIONS.md
+005, 039). A plain-text answer gets a nudge, and a
 rejected submission goes back with the reasons; both are limited, so every run
 ends. The template's plain-text mode was removed with its example (DECISIONS.md 035).
 """
@@ -78,6 +79,7 @@ class AgentResult:
     submission: Any = None  # the parsed answer from the finish tool, e.g. a Diagnosis
     nudges: int = 0
     rejected_submissions: int = 0
+    hit_cap: bool = False  # used every investigative call, whatever happened next
     info: dict[str, Any] = field(default_factory=dict)  # caller's context, e.g. namespace
 
     def to_record(self) -> dict[str, Any]:
@@ -142,10 +144,10 @@ async def run_agent(
     started = time.perf_counter()
     costs: list[float | None] = []
 
-    async def ask(specs: list[ToolSpec]) -> ModelTurn:
+    async def ask(specs: list[ToolSpec], require: str | None = None) -> ModelTurn:
         result.steps += 1
         # Provider SDKs are synchronous; run them off the event loop.
-        turn = await asyncio.to_thread(provider.complete, system, messages, specs)
+        turn = await asyncio.to_thread(provider.complete, system, messages, specs, require)
         result.input_tokens += turn.input_tokens
         result.output_tokens += turn.output_tokens
         result.model_latency_s += turn.latency_s
@@ -164,7 +166,7 @@ async def run_agent(
     return result
 
 
-Ask = Callable[[list[ToolSpec]], Awaitable[ModelTurn]]
+Ask = Callable[[list[ToolSpec], str | None], Awaitable[ModelTurn]]
 
 
 async def _finish_loop(
@@ -187,7 +189,9 @@ async def _finish_loop(
 
     while True:
         forced = used >= max_tool_calls
-        turn = await ask([finish.spec] if forced else all_specs)
+        # Offering only the finish tool isn't enough: in Run 2 a model answered the
+        # forced turn in plain text. Requiring it makes the API insist (DECISIONS.md 039).
+        turn = await ask([finish.spec], name) if forced else await ask(all_specs, None)
         result.final_text = turn.text
 
         if not turn.tool_calls:
@@ -229,6 +233,7 @@ async def _finish_loop(
                 )
             else:
                 used += 1
+                result.hit_cap = used >= max_tool_calls
                 rec = await _run_tool(by_name, call)
             result.tool_calls.append(rec)
             messages.append(_tool_message(call, rec))
