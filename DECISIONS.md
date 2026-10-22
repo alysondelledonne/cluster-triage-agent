@@ -4,6 +4,7 @@ A running log of design and project decisions: what was decided, why, and what i
 
 | # | Date | Decision | Status |
 | --- | --- | --- | --- |
+| 045 | 2026-10-22 | CI: three workflows (every PR offline; kind manual + weekly; live evals manual), actions pinned to commits, tests can't reach the network | Accepted |
 | 044 | 2026-10-22 | Run 4 (the "after"): both models 18/18; prompt version 2 stays; the Milestone 3 "one change" is done | Accepted |
 | 043 | 2026-10-22 | Prompt version 2: one-line quotes and the CrashLoop/ConfigError line, the Milestone 3 "one change" | Accepted |
 | 042 | 2026-10-22 | Run 3 (the "before"): Haiku 18/18, Grok 17/18; the evals' re-check decodes JSON-string fields; prompt version 2 proposed | Accepted; prompt version 2 accepted in 043 |
@@ -54,6 +55,17 @@ A running log of design and project decisions: what was decided, why, and what i
 - **How a person applies a fix.** Fixes are partial objects (030). Plain client-side `kubectl apply` would delete fields the scenario's last-applied annotation still lists; `kubectl patch` (strategic merge) or `kubectl apply --server-side` would not. Decide in M4 with the dry-run check, then align the prompt, the `proposed_fix` description and the report.
 
 ---
+
+### 045 — CI: three workflows (every PR offline; kind manual + weekly; live evals manual), actions pinned to commits, tests can't reach the network
+**Why:** Milestone 3 asks for checks on every PR and a manual workflow that spins up kind and runs the evals. The template's two workflows covered the first and half of the second: `eval-live.yml` still offered the removed `openai` path, defaulted to Anthropic only, had no kind job, and pasted inputs straight into the shell. Choices made on 2026-10-22: run the kind job weekly as well as by hand (it's free, and a red run means kind or Kubernetes has drifted from the recordings); pin actions to commit SHAs with Dependabot proposing updates (a tag can be moved by the action's owner; a commit can't); offer a live diagnosis in the kind job as an input that is off by default.
+**Consequence:**
+- `ci.yml` (every push to `main` and PR) adds `uv sync --locked`, a read-only token, checkout without kept credentials, a timeout, cancelling superseded runs, and shellcheck on `scripts/`.
+- `tests/conftest.py` makes every connection and name lookup for a host other than this machine fail for the whole test session, with tests showing a real Anthropic client can't get through. CLAUDE.md's "tests never call a model API or need a cluster" is now enforced in every run, local or CI.
+- `kind.yml` (manual, and Mondays 14:17 UTC) is its own workflow so the free weekly job never sits next to API keys it doesn't need: kind v0.33.0 with the `kindest/node:v1.37.0` image pinned by digest (the version the recordings were made on), the RBAC, the agent's kubeconfig, `triage-seed record` for all six, then the recording, CLI and eval tests plus the offline gate on the fresh recordings. They're uploaded and summarised, never committed. The optional live diagnosis gives keys only to its own step, treats "no diagnosis" (exit 1) as a result and fails only on a setup problem (exit 2).
+- `eval-live.yml` (manual) defaults to `anthropic grok` and 3 repeats, accepts a scenario list, checks inputs and each chosen provider's key and model before spending anything, passes inputs to the shell only through environment variables, writes the tables to the run summary and uploads the results and run log. Model names are repository variables, not secrets; an empty `ANTHROPIC_MODEL` falls back to `claude-haiku-5-5`.
+- The README's five kubeconfig commands become `scripts/agent-kubeconfig.sh`, which the README, the kind job and anyone cloning the repo all use. It removes the caller's own credentials from the copy and exits non-zero unless the result authenticates as `triage-system/triage-agent`; tests run it against a stand-in `kubectl`.
+- setup-uv is pinned to v10.2.0 (2026-09-21) rather than its newest release, published the day this was written; Dependabot will propose newer ones.
+- The README's GitHub Actions item is ticked once `ci.yml` is green and one manual run of each other workflow has passed.
 
 ### 044 — Run 4 (the "after"): both models 18/18; prompt version 2 stays; the Milestone 3 "one change" is done
 **Why:** Run 4 (evals/RESULTS.md: commit `40a407e`, prompt version 2, $0.48) against Run 3 (version 1). Haiku 18/18, first-try grounding 1.0, $0.0023 an incident; Grok 18/18, 0.98, $0.024. The CrashLoop/ConfigError wording did what it was for: Grok's scenario 1 went from 2/3 to 3/3, with no ConfigError calls (2 of 6 runs across Runs 2–3) and fewer calls (4 against 5–6). The quoting rule showed no measurable effect: Run 3 had no joined or annotated quotes left, and Run 4's one ungrounded first try was a new kind, a sentence Grok wrote itself, which grounding caught and Grok corrected in one retry after the new rejection message. The first real cap hit since 040 (`d082cccc60e9`) submitted the right diagnosis on the forced turn, where Run 2's identical path ended with none.

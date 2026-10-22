@@ -1,0 +1,98 @@
+name: kind (scenarios on a real cluster)
+
+# Checks the scenarios and recordings still match a real cluster: creates a kind
+# cluster, seeds and records all six scenarios through the agent's read-only
+# ServiceAccount, then runs the recording tests and the offline gate on the fresh
+# recordings (DECISIONS.md 045). Free: no model is called unless you pick one
+# under "diagnose with" (a few cents per run, needs that provider's secret).
+# Weekly, so drift in kind or Kubernetes shows up without anyone asking.
+on:
+  workflow_dispatch:
+    inputs:
+      diagnose_with:
+        description: "Also diagnose each seeded namespace live with this model (costs a little)"
+        type: choice
+        options: [none, anthropic, grok]
+        default: none
+  schedule:
+    - cron: "17 14 * * 1" # Mondays 14:17 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kind
+  cancel-in-progress: false
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked
+
+      # The same Kubernetes version the committed recordings were made on.
+      - uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+        with:
+          version: v0.33.0
+          node_image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+          cluster_name: triage
+          wait: 120s
+
+      - name: The agent's read-only ServiceAccount
+        run: kubectl --context kind-triage apply -f deploy/rbac/
+
+      - name: The agent's kubeconfig (its token only)
+        run: scripts/agent-kubeconfig.sh --duration 2h
+
+      - name: Seed and record every scenario
+        run: uv run triage-seed record --keep
+
+      - name: The fresh recordings pass the recording tests and the offline gate
+        run: |
+          uv run pytest tests/test_recordings.py tests/test_cli.py tests/test_evals.py
+          uv run triage-eval --provider fake --gate
+
+      - name: How the fresh recordings differ from the committed ones
+        if: always()
+        run: |
+          {
+            echo "## Fresh recordings (kind, Kubernetes $(kubectl --context kind-triage version -o json | jq -r .serverVersion.gitVersion))"
+            echo
+            echo '```'
+            git diff --stat -- tests/fixtures/scenarios
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: fresh-recordings
+          path: tests/fixtures/scenarios/
+
+      - name: Live diagnosis of each seeded namespace
+        if: github.event_name == 'workflow_dispatch' && inputs.diagnose_with != 'none'
+        env:
+          PROVIDER: ${{ inputs.diagnose_with }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-haiku-5-5' }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          XAI_MODEL: ${{ vars.XAI_MODEL }}
+        run: |
+          echo "## Live diagnosis with $PROVIDER" >> "$GITHUB_STEP_SUMMARY"
+          setup_problem=0
+          for dir in scenarios/*/; do
+            ns="triage-$(basename "$dir")"
+            code=0
+            report="$(uv run triage --namespace "$ns" --provider "$PROVIDER")" || code=$?
+            { echo; echo "### $ns (exit $code)"; echo '```'; echo "$report"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            # 1 means no diagnosis (a result worth seeing, not a broken job); 2 is a setup problem.
+            if [[ "$code" -eq 2 ]]; then setup_problem=1; fi
+          done
+          exit "$setup_problem"

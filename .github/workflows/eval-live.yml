@@ -1,39 +1,100 @@
 name: Live eval (manual)
 
-# Runs the eval suite against real models. Costs money, so it only runs when
-# started by hand from the Actions tab. Add the API keys as repository secrets.
+# Runs the eval suite against real models on the committed recordings. Costs money
+# (about $0.50 for both models at 3 repeats), so it only runs when started by hand
+# from the Actions tab. Never commits: download the "eval-results" artifact and
+# commit what you want to keep (DECISIONS.md 045).
+#
+# Repository secrets: ANTHROPIC_API_KEY, XAI_API_KEY (only for the providers you run).
+# Repository variables: XAI_MODEL (needed for grok), ANTHROPIC_MODEL (optional;
+# defaults to claude-haiku-5-5).
 on:
   workflow_dispatch:
     inputs:
       providers:
-        description: "Space-separated: anthropic openai grok"
-        default: "anthropic"
+        description: "Space-separated: anthropic grok"
+        type: string
+        default: "anthropic grok"
       repeats:
-        description: "Runs per case"
+        description: "Runs per scenario per model (1-10)"
+        type: string
         default: "3"
+      scenarios:
+        description: "Space-separated scenario numbers or names; empty runs all six"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eval-live
+  cancel-in-progress: false
 
 jobs:
   eval:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.12"
-      - run: uv sync
-      - name: Run evals
+      - run: uv sync --locked
+
+      # Inputs reach the shell only through env, never pasted into the script.
+      - name: Check inputs, keys and models before spending anything
         env:
+          PROVIDERS: ${{ inputs.providers }}
+          REPEATS: ${{ inputs.repeats }}
+          SCENARIOS: ${{ inputs.scenarios }}
+          HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_XAI_KEY: ${{ secrets.XAI_API_KEY != '' }}
+          XAI_MODEL: ${{ vars.XAI_MODEL }}
+        run: |
+          problems=0
+          [[ -n "${PROVIDERS// }" ]] || { echo "::error::choose at least one provider"; problems=1; }
+          for p in $PROVIDERS; do
+            case "$p" in
+              anthropic) [[ "$HAS_ANTHROPIC_KEY" == true ]] || { echo "::error::secret ANTHROPIC_API_KEY is not set"; problems=1; } ;;
+              grok)
+                [[ "$HAS_XAI_KEY" == true ]] || { echo "::error::secret XAI_API_KEY is not set"; problems=1; }
+                [[ -n "$XAI_MODEL" ]] || { echo "::error::variable XAI_MODEL is not set"; problems=1; } ;;
+              *) echo "::error::unknown provider '$p' (use anthropic, grok)"; problems=1 ;;
+            esac
+          done
+          [[ "$REPEATS" =~ ^([1-9]|10)$ ]] || { echo "::error::repeats must be 1-10, got '$REPEATS'"; problems=1; }
+          for s in $SCENARIOS; do
+            [[ "$s" =~ ^[A-Za-z0-9-]+$ ]] || { echo "::error::bad scenario '$s'"; problems=1; }
+          done
+          exit "$problems"
+
+      - name: Run the evals
+        env:
+          PROVIDERS: ${{ inputs.providers }}
+          REPEATS: ${{ inputs.repeats }}
+          SCENARIOS: ${{ inputs.scenarios }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-haiku-5-5' }}
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
           XAI_MODEL: ${{ vars.XAI_MODEL }}
         run: |
-          args=""
-          for p in ${{ inputs.providers }}; do args="$args --provider $p"; done
-          uv run triage-eval $args --repeats ${{ inputs.repeats }} --save
-      - uses: actions/upload-artifact@v4
+          args=()
+          for p in $PROVIDERS; do args+=(--provider "$p"); done
+          for s in $SCENARIOS; do args+=(--scenario "$s"); done
+          {
+            echo "## Live eval: $PROVIDERS, $REPEATS repeats, commit ${GITHUB_SHA::7}"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          uv run triage-eval "${args[@]}" --repeats "$REPEATS" --save | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
         with:
           name: eval-results
-          path: evals/results/
+          path: |
+            evals/results/
+            runs/runs.jsonl
+          if-no-files-found: warn

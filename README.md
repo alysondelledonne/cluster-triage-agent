@@ -1,8 +1,10 @@
 # cluster-triage-agent
 
+[![CI](https://github.com/alysondelledonne/cluster-triage-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/alysondelledonne/cluster-triage-agent/actions/workflows/ci.yml)
+
 An AI agent that takes a broken Kubernetes namespace and returns the root cause, the evidence it used, and a proposed YAML fix. It looks at the cluster only through read-only tools on an MCP server, enforced by RBAC, and a human decides whether to apply the fix.
 
-**Status:** Milestone 3 (evals, CI and README) in progress. Four real evals on the recorded scenarios (36 runs each, details in [evals/RESULTS.md](evals/RESULTS.md)). Latest (Run 4, prompt version 2): Claude Haiku and `grok-4.20-0309-non-reasoning` both 18/18, at $0.0023 and $0.024 an incident. The "one change" (prompt version 2) is done, with before and after (DECISIONS 044). Next: CI, then the README for a stranger.
+**Status:** Milestone 3 (evals, CI and README) in progress. Four real evals on the recorded scenarios (36 runs each, details in [evals/RESULTS.md](evals/RESULTS.md)). Latest (Run 4, prompt version 2): Claude Haiku and `grok-4.20-0309-non-reasoning` both 18/18, at $0.0023 and $0.024 an incident. CI workflows are written (DECISIONS 045) and waiting for their first runs. Next: the README for a stranger.
 
 - How it works: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Why it works that way: [DECISIONS.md](DECISIONS.md)
@@ -31,19 +33,14 @@ kubectl --context kind-triage auth can-i --list \
 
 ## Run the MCP server
 
-The server reads one namespace, fixed when it starts, and refuses to start unless it is connected as the agent's ServiceAccount. Give it a kubeconfig that holds a short-lived token for that ServiceAccount and nothing else. The token lasts an hour; run these again to renew it.
+The server reads one namespace, fixed when it starts, and refuses to start unless it is connected as the agent's ServiceAccount. Give it a kubeconfig that holds a short-lived token for that ServiceAccount and nothing else. [`scripts/agent-kubeconfig.sh`](scripts/agent-kubeconfig.sh) builds one at `~/.kube/triage-agent.yaml`: it copies the cluster from your `kind-triage` context, removes your own credentials from the copy, adds a one-hour token for `triage-system/triage-agent`, and checks the result authenticates as that ServiceAccount. Run it again to renew the token (`--context`, `--output` and `--duration` change the defaults).
 
 ```bash
-kubectl --context kind-triage config view --minify --raw > ~/.kube/triage-agent.yaml
-chmod 600 ~/.kube/triage-agent.yaml
-kubectl --kubeconfig ~/.kube/triage-agent.yaml config unset users.kind-triage
-kubectl --kubeconfig ~/.kube/triage-agent.yaml config set-credentials triage-agent --token="$(kubectl --context kind-triage -n triage-system create token triage-agent --duration=1h)"
-kubectl --kubeconfig ~/.kube/triage-agent.yaml config set-context --current --user=triage-agent
-kubectl --kubeconfig ~/.kube/triage-agent.yaml auth whoami
+scripts/agent-kubeconfig.sh
 uv run triage-mcp --namespace triage-01-crashloop --kubeconfig ~/.kube/triage-agent.yaml
 ```
 
-`auth whoami` should print `system:serviceaccount:triage-system:triage-agent`. `triage-mcp` then waits for an MCP client on stdin and stdout; connect it to Claude Desktop or Claude Code as a stdio server with that same command.
+The script ends with `wrote …/triage-agent.yaml: system:serviceaccount:triage-system:triage-agent, token valid for 1h`. `triage-mcp` then waits for an MCP client on stdin and stdout; connect it to Claude Desktop or Claude Code as a stdio server with that same command.
 
 ### Record the scenarios for offline tests
 
@@ -68,7 +65,7 @@ It prints the category and affected object, the root cause, each evidence quote 
 
 ## Evaluate
 
-`triage-eval` runs every scenario from its recording, grades each run against the scenario's `expected.yaml`, and prints a summary per model (accuracy, first-try evidence grounding, tool calls, latency, cost) and a scenario-by-model grid. The offline gate uses a scripted model and is what CI runs; the real runs call the models and cost money (about $0.04 for 18 Haiku runs, about $0.90 for 18 Grok runs).
+`triage-eval` runs every scenario from its recording, grades each run against the scenario's `expected.yaml`, and prints a summary per model (accuracy, first-try evidence grounding, tool calls, latency, cost) and a scenario-by-model grid. The offline gate uses a scripted model and is what CI runs; the real runs call the models and cost money (about $0.04 for 18 Haiku runs, about $0.45 for 18 Grok runs).
 
 ```bash
 uv run triage-eval --provider fake --gate
@@ -77,6 +74,23 @@ uv run triage-eval --provider anthropic --provider grok --repeats 3 --save
 ```
 
 `--save` writes every run and the summaries to `evals/results/` and the tables to `evals/results/latest.md`. Grok needs `XAI_API_KEY` and `XAI_MODEL` in `.env` (see `.env.example`).
+
+## CI
+
+Three GitHub Actions workflows (DECISIONS 045). Every action is pinned to a commit, and Dependabot proposes updates weekly.
+
+| workflow | runs | what it does | cost |
+| --- | --- | --- | --- |
+| [`ci.yml`](.github/workflows/ci.yml) | every push to `main` and every PR | ruff, shellcheck, mypy, pytest, the offline eval gate | free; no secrets, and the tests can't reach the network |
+| [`kind.yml`](.github/workflows/kind.yml) | by hand, and Mondays | creates a kind cluster, seeds and records all six scenarios through the agent's ServiceAccount, runs the recording tests and the gate on the fresh recordings, uploads them | free; optionally diagnoses each namespace live with one model (a few cents) |
+| [`eval-live.yml`](.github/workflows/eval-live.yml) | by hand only | the real evals on the committed recordings; tables in the run summary, results as an artifact | about $0.50 for both models at 3 repeats |
+
+### Run the evals yourself
+
+1. Fork the repo.
+2. In the fork's Settings → Secrets and variables → Actions, add the secrets `ANTHROPIC_API_KEY` and `XAI_API_KEY`, and the variable `XAI_MODEL` (`grok-4.20-0309-non-reasoning` for the results here). `ANTHROPIC_MODEL` is optional and defaults to `claude-haiku-5-5`. Only the providers you run need their key.
+3. Actions → **Live eval (manual)** → Run workflow. The defaults (`anthropic grok`, 3 repeats, all scenarios) reproduce the results table below.
+4. The run's summary page shows the same tables as `triage-eval`; the `eval-results` artifact holds the results file and every run's trace. The workflow never commits.
 
 ## Progress
 

@@ -163,6 +163,14 @@ The offline gate (`triage-eval --provider fake --gate`, run in CI) uses a script
 
 Each scenario runs 3 times per model, replayed from its recording so every model sees the same cluster output and anyone can rerun it without a cluster (DECISIONS 033). The models are `claude-haiku-5-5` and `grok-4.20-0309-non-reasoning` (DECISIONS 034). Unit tests and CI use recorded tool output in `tests/fixtures/` and never call a model or need a cluster; real evals run on demand.
 
+## CI
+
+Three workflows (DECISIONS 045). All have a read-only `GITHUB_TOKEN`, check out without keeping credentials, install with `uv sync --locked`, and pin every action to a commit.
+
+- **`ci.yml`**, on every push to `main` and every PR: ruff, shellcheck on `scripts/`, mypy, pytest and the offline gate. No secrets. `tests/conftest.py` makes any connection or name lookup for a host other than this machine fail during tests, so the rule that tests never call a model or need a cluster is enforced, not assumed.
+- **`kind.yml`**, by hand and weekly: a kind cluster on the same Kubernetes version as the committed recordings (v1.37.0, node image pinned by digest), the RBAC from `deploy/rbac/`, the agent's kubeconfig from `scripts/agent-kubeconfig.sh`, then `triage-seed record` for all six scenarios. The recording tests, the CLI and eval tests and the offline gate then run on the fresh recordings, and the run summary shows how they differ from the committed ones; the recordings are uploaded, never committed. An optional input diagnoses each seeded namespace live with one model; its keys are only given to that step.
+- **`eval-live.yml`**, by hand only: `triage-eval` on the committed recordings with the chosen providers, repeats and scenarios. A first step checks the inputs, and that each chosen provider has its key and model, before anything is spent. Inputs reach the shell through environment variables only. Tables go to the run summary; `evals/results/` and the run log are uploaded as an artifact. It never commits.
+
 ## Repo layout
 
 ```
@@ -183,7 +191,9 @@ cluster-triage-agent/
   scenarios/NN-name/   manifest.yaml + expected.yaml
   evals/               cases, baseline, results
   tests/               offline unit tests; fixtures/kube (hand-written), fixtures/scenarios (recorded)
-  .github/workflows/   lint, types, tests and eval gate on every push and PR
+  scripts/             agent-kubeconfig.sh: the agent's kubeconfig (token only)
+  .github/workflows/   ci.yml (every push and PR), kind.yml (manual + weekly), eval-live.yml (manual)
+  .github/dependabot.yml  weekly updates for the pinned actions
 ```
 
 ## Tech stack
@@ -197,5 +207,5 @@ cluster-triage-agent/
 | Schemas | Pydantic |
 | Local cluster | `kind` (Kubernetes in Docker), in CI too |
 | Quality | pytest, Ruff, mypy, pre-commit |
-| CI | GitHub Actions |
+| CI | GitHub Actions (three workflows; actions pinned to commits, Dependabot for updates) |
 | Tracing (M4) | Arize Phoenix, self-hosted |

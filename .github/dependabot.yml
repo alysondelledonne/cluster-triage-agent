@@ -1,0 +1,10 @@
+# Proposes updates to the pinned GitHub Actions as one weekly PR (DECISIONS.md 045).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

@@ -73,11 +73,13 @@ Now:
 - `scenarios/NN-name/` `manifest.yaml` (breaks something) + `expected.yaml` (correct answer)
 - `deploy/rbac/` the agent's ServiceAccount, read-only ClusterRole and binding
 - `config/pricing.json` per-model prices
-- `tests/` unit tests (offline); `tests/fixtures/kube/` hand-written API payloads,
-  `tests/fixtures/scenarios/` recorded per scenario and replayed by `mcp_server/replay.py`
+- `tests/` unit tests (offline; `conftest.py` blocks the network); `tests/fixtures/kube/` hand-written
+  API payloads, `tests/fixtures/scenarios/` recorded per scenario and replayed by `mcp_server/replay.py`
+- `scripts/agent-kubeconfig.sh` builds `~/.kube/triage-agent.yaml` (the agent's token only)
+- `.github/workflows/` `ci.yml` every push and PR, `kind.yml` manual + weekly, `eval-live.yml` manual
 
 Coming in M3:
-- results table and README for a stranger; manual CI workflow with an optional kind job
+- README for a stranger: runbook, known failure modes, how it was built, demo GIF
 
 ## Conventions
 - Python 3.12, type hints everywhere, Pydantic for anything crossing a boundary.

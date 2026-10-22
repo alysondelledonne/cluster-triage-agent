@@ -1,21 +1,37 @@
 name: CI
 
+# Every push to main and every PR. Offline: no model API, no cluster, no secrets.
+# tests/conftest.py makes any outbound network call fail (DECISIONS.md 045).
+# Actions are pinned to commits; Dependabot proposes updates (.github/dependabot.yml).
 on:
   push:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.12"
-      - run: uv sync
-      - name: Lint
+      - name: Install (fails if uv.lock is out of date)
+        run: uv sync --locked
+      - name: Lint and format
         run: uv run ruff check . && uv run ruff format --check .
+      - name: Shell scripts
+        run: shellcheck scripts/*.sh
       - name: Types
         run: uv run mypy
       - name: Tests
